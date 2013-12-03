@@ -50,7 +50,7 @@ when 'init' then
 end
 
 if not Jud::Config.instance.config['main'].include? 'home' then
-  abort('Please, initialize jud with jud init [SVN] <url> <path>')
+  abort('Please, initialize jud with jud init [Git|SVN] <url> <path>')
 else
   scm = Jud::Config.instance.config['main']['scm']
   $home = Pathname.new(Jud::Config.instance.config['main']['home'])

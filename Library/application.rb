@@ -193,6 +193,10 @@ class Application
       @submit_tool.instance_eval &block if block_given? &block
     end
     
+    def git url
+      @scm_tool = Git.new url
+    end
+    
     def redmine url, projectid
       @repository = Redmine.new url, projectid
     end
