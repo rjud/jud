@@ -3,9 +3,15 @@ require 'pack_tool'
 require 'zip'
 
 class ZipTool < PackTool
-    
+
+  class << self
+    def load_path; false; end
+  end
+  
+  ZipTool.configure
+  
   def initialize name
-    super(name, false, 'zip')
+    super(name, 'zip')
   end
   
   def pack_impl filename, directory

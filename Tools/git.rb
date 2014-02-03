@@ -7,10 +7,12 @@ class Git < SCMTool
     def guess url; return url.end_with? '.git' end
   end
   
+  Git.configure
+  
   def initialize name, url, options = {}
     super(name, url)
   end
-    
+  
   def checkout src, options = {}
     cmd = '"' + path + '"'
     cmd += " clone #{@url} #{src.basename.to_s}"

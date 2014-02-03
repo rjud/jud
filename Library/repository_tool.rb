@@ -1,7 +1,7 @@
 class RepositoryTool < Tool
 
-  def initialize name, load_path=true
-    super(name, load_path)
+  def initialize name
+    super(name)
   end
   
 end

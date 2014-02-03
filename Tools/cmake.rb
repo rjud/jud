@@ -3,13 +3,11 @@ require 'open3'
 
 class CMake < BuildTool
   
-  class << self
-    def autoconfigurable; return true; end
-  end
+  CMake.configure
   
   attr_reader :native_build_tool
   
-  def initialize name, options = {}
+  def initialize name
     super(name)
     @native_build_tool = $platform.get_tool $platform_config['Native Build Tool']
   end

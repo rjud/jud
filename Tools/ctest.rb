@@ -9,6 +9,8 @@ class CTest < SubmitTool
     def autoconfigurable; return true; end
   end
   
+  CTest.configure
+  
   attr_reader :native_build_tool
   
   def initialize name, options = {}

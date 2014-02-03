@@ -1,10 +1,16 @@
 require 'repository_tool'
 
 class Redmine < RepositoryTool
+
+  class << self
+    def load_path; false; end
+  end
+  
+  Redmine.configure
   
   def initialize name, url, projectid
     
-    super(name, false)
+    super(name)
     
     @url = url
     @projectid = projectid

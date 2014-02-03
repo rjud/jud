@@ -91,12 +91,6 @@ platform = $general_config['default']
 $platform_config = Jud::Config.instance.config['platforms'][platform]
 
 $platform = Platform.new platform
-
-require 'tool'
-Dir.glob $juddir.join('Tools', '*.rb') do |rb|
-  load rb
-end
-
 $platform.load_tools
 
 $:.unshift $home.join('Applications').to_s
@@ -123,18 +117,6 @@ when 'help', nil
     ' [tag <app> <tag>]' +
     ' [tags <app>]' +
     "\n"
-when 'autoconfigure'
-  ARGV.shift
-  subsubclasses(Application).each do |application|
-    application.languages.each do |language|
-      compiler = $platform.get_compiler language
-      compiler.autoconfigure
-    end
-    application.tools.each do |tool|
-      $platform.add_tool tool
-      tool.autoconfigure
-    end
-  end
 when 'branch'
   ARGV.shift
   app = Object.const_get(ARGV.shift).new

@@ -10,20 +10,28 @@ require 'cl'
 
 class Cl10 < Cl
   
-  def initialize name, config = {}
-    super(name, '10.0', config)
-  end
-  
-  def get_windows_sdk_dir
-    return Pathname.new reg_query('SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0A', 'InstallationFolder')
-  end
-  
-  def get_vs_common_tools_dir
-    if ENV.key? 'VS100COMNTOOLS' then
-      return ENV['VS100COMNTOOLS']
-    else
-      return get_vs_install_dir.join('Common7', 'Tools')
+  class << self
+    
+    def version; '10.0'; end
+    
+    def get_windows_sdk_dir
+      return Pathname.new reg_query('SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0A', 'InstallationFolder')
     end
+    
+    def get_vs_common_tools_dir
+      if ENV.key? 'VS100COMNTOOLS' then
+        return ENV['VS100COMNTOOLS']
+      else
+        return get_vs_install_dir.join('Common7', 'Tools')
+      end
+    end
+    
+  end
+  
+  Cl10.configure
+  
+  def initialize name, config = {}
+    super(name, config)
   end
   
 end
