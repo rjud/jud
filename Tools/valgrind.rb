@@ -2,8 +2,10 @@ require 'memcheck_tool'
 
 class Valgrind < MemcheckTool
   
-  def initialize
-    super('valgrind')
+  class << self
+    def name; 'valgrind'; end
+    def autoconfigurable; return true; end
+    def variants; return [Platform::UNIX]; end
   end
   
 end

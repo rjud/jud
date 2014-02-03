@@ -2,8 +2,8 @@ class PackTool < Tool
   
   attr_reader :ext
   
-  def initialize name, load_path, ext
-    super(name, load_path)
+  def initialize load_path, ext
+    super(load_path)
     @ext = ext
   end
   

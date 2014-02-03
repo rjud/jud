@@ -5,10 +5,14 @@ require 'open3'
 
 class CTest < SubmitTool
   
+  class << self
+    def name; return 'ctest'; end
+    def autoconfigurable; return true; end
+  end
+  
   attr_reader :native_build_tool
   
   def initialize
-    super('ctest')
     @native_build_tool = native_build_tool
   end
   
@@ -24,7 +28,7 @@ class CTest < SubmitTool
     end
     # Call CTest
     cmd = '"' + path + '" -V -S ' + script_filename.to_s
-    exit_status = $platform.execute cmd, nil, true, '!!!!'
+    exit_status = $platform.execute cmd, safe: true, keep: '!!!!'
     if exit_status[0].success? then
       SubmitTool::OK
     elsif exit_status[1].match(/Configuration failed/) then

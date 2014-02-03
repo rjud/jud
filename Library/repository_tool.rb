@@ -1,5 +1,3 @@
 class RepositoryTool < Tool
-  
-  
-  
+    
 end

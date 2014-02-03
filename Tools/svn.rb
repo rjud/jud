@@ -2,22 +2,23 @@ require 'scm_tool'
 
 class SVN < SCMTool
   
-  def initialize url
-    super('svn', url)
+  class << self
+    def name; return 'svn'; end
+    def autoconfigurable; return false; end
   end
   
-  def checkout src
+  def checkout src, options = {}
     cmd = '"' + path + '"'
     cmd += ' checkout'
     cmd += ' ' + @url + '/trunk'
     cmd += ' ' + src.basename.to_s
-    $platform.execute cmd, src.dirname
+    $platform.execute cmd, {:wd => src.dirname}.merge(options)
   end
   
   def update src
     cmd = '"' + path + '"'
     cmd += ' update'
-    $platform.execute cmd, src
+    $platform.execute cmd, wd: src
   end
   
   def branch src, branch
@@ -31,7 +32,7 @@ class SVN < SCMTool
   def tags src
     cmd = '"' + path + '"'
     cmd += ' ls ' + @url + '/tags'
-    $platform.execute cmd, src.dirname
+    $platform.execute cmd, wd: src.dirname
   end
   
   def copy src, dest

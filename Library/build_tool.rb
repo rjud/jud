@@ -7,9 +7,8 @@ class BuildTool < Tool
   
   attr_reader :options
   
-  def initialize name
-    super(name)
-    @options = {}
+  def initialize
+    options = {}
   end
   
   def option id, type, desc: '', default: nil, cond: nil

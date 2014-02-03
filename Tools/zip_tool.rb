@@ -4,8 +4,12 @@ require 'zip'
 
 class ZipTool < PackTool
   
+  class << self
+    def name; return 'zip'; end
+  end
+  
   def initialize
-    super('zip', false, 'zip')
+    super(false, 'zip')
   end
   
   def pack_impl filename, directory

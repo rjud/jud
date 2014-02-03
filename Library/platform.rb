@@ -2,7 +2,13 @@ require 'open3'
 
 class Platform
   
+  class Error < RuntimeError; end
+  
+  UNIX  = 1 << 1
+  WIN32 = 1 << 2
+  
   attr_accessor :cmake_native_build_tool
+  attr_accessor :cmake_native_compiler
   attr_accessor :cmake_generator
   attr_accessor :memcheck_tool
   
@@ -18,25 +24,39 @@ class Platform
   def self.cyan text; colorize text, "\033[36m"; end
   def self.gray text; colorize text, "\033[37m"; end
   
-  def execute cmd, wd=nil, safe=false, keep=nil
-    if wd
+  def self.create platform, repository
+    config = Jud::Config.instance.config['platforms'][platform]
+    config['repository'] = repository
+  end
+  
+  def load_env
+    @cmake_native_compiler.load_env
+  end
+  
+  # wd, safe, keep
+  def execute cmd, options = {}
+    options = {safe: false}.merge(options)
+    if options.key? :wd
+      wd = options[:wd]
       FileUtils.mkdir_p wd.to_s if not wd.directory?
       Dir.chdir wd.to_s
+      puts Platform.blue(wd.to_s + '> ' + cmd)
+    else
+      puts Platform.blue(cmd)
     end
-    puts Platform.blue(wd.nil? ? cmd : wd.to_s + '> ' + cmd)
     exit_status = nil
     lines = []
     Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
       while line = stdout_err.gets
         puts line
-        lines << line if keep and line.match(/#{keep}/)
+        lines << line if options.key? :keep and line.match(/#{options[:keep]}/)
       end
       exit_status = wait_thr.value
     end
-    if safe or exit_status.success? then
+    if options[:safe] or exit_status.success? then
       [exit_status, lines.last]
     else
-      abort
+      raise Error, "Command #{cmd} failed"
     end
   end
   
@@ -51,11 +71,11 @@ class Platform
         end
       end
     end
-    puts Platform.red("Can't find " + exe)
+    puts (Platform.red "Can't find #{exe}")
     if optional
       return nil
     else
-      abort
+      raise Error, "Can't find executable #{exe}"
     end
   end
   

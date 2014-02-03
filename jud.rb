@@ -16,12 +16,12 @@ host_os = RbConfig::CONFIG['host_os']
 host_os = 'darwin' if host_os.match /^darwin/
 
 begin
-  puts Platform.green("Load platform " + host_os)
   load $juddir.join('Platforms', host_os + '.rb')
   $platform = Object.const_get(host_os.capitalize).new
-rescue LoadError => e
+rescue LoadError
   puts Platform.red("Can't load platform " + host_os)
-  $platform = Platform.new
+  require 'Platforms/default'
+  $platform = Default.new
 end
 
 require 'tool'
@@ -29,7 +29,81 @@ Dir.glob $juddir.join('Tools', '*.rb') do |rb|
   load rb
 end
 
+#$platform.load_env
+
+def subsubclasses cl
+  return ObjectSpace.each_object(Class).select { |klass| klass < cl }
+end
+
 case ARGV.first
+when 'autoconfigure' then
+  subsubclasses(Tool).each do |tool|
+    if tool.autoconfigurable then
+      if tool.variants.include? $platform.variant then
+        tool.autoconfigure
+      end
+    end
+  end
+  $platform.autoconfigure
+  exit
+when 'download' then
+  ARGV.shift
+  url = ARGV.shift
+  dir = Pathname.new(ARGV.shift)
+  Dir.mkdir dir.to_s if not File.directory? dir.to_s
+  dir = dir.realpath
+  home = dir.join('home')
+  status = nil
+  scm = nil
+  subsubclasses(SCMTool).each do |klass|
+    begin
+      if klass.guess url then
+        puts Platform.green("#{url} looks like a Git repository")
+        scm = klass.new(url)
+        status = scm.checkout home
+      end
+    rescue Platform::Error => e
+      puts (Platform.red e)
+    end
+  end
+  catch :download_ok do
+    if not status or not status[0].success? then
+      puts (Platform.green "Can't guess the type of the repository #{url}")
+      subsubclasses(SCMTool).each do |klass|
+        begin
+          puts (Platform.green "Try to download with #{klass.name}")
+          scm = klass.new(url)
+          status = scm.checkout home, :safe => true
+          throw :download_ok if status[0].success?
+        rescue Platform::Error => e
+          puts (Platform.red e)
+        end
+      end
+      abort
+    end
+  end
+  namefile = home.join 'NAME'
+  File.open(namefile.to_s, "r") do |file|
+    name = file.gets
+    if name.empty? then
+      puts "The file NAME is empty."
+      abort
+    else
+      config = Jud::Config.instance.config['main']['repositories'][name]
+      config['scm'] = scm.class.name
+      config['url'] = url
+      config['dir'] = dir.to_s
+      config['home'] = home.to_s
+      exit
+    end
+  end
+when 'create' then
+  ARGV.shift
+  platform = ARGV.shift
+  repository = ARGV.shift
+  Platform.create platform, repository
+  Jud::Config.instance.config['main']['default'] = platform
+  exit
 when 'init' then
   ARGV.shift
   scm = ARGV.shift

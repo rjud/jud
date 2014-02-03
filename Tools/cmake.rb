@@ -3,10 +3,14 @@ require 'open3'
 
 class CMake < BuildTool
   
+  class << self
+    def name; return 'cmake'; end
+    def autoconfigurable; return true; end
+  end
+  
   attr_reader :native_build_tool
   
   def initialize
-    super('cmake')  
     @native_build_tool = $platform.cmake_native_build_tool
   end
   
@@ -26,7 +30,7 @@ class CMake < BuildTool
       cmd += ' -D' + opt.name + '=' + (option_to_s opt)
     end
     cmd += ' ' + src.to_s
-    $platform.execute cmd, build
+    $platform.execute cmd, wd: build
   end
   
   def build *args

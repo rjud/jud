@@ -15,6 +15,7 @@ module Jud
       Dir.mkdir configdir.to_s if not File.directory? configdir.to_s
       @filename = configdir.join('config.yml')
       if File.exist? @filename
+        puts Platform.green("Load config file " + @filename.to_s)
         raw = File.read(@filename)
         @config = YAML.load(raw)
       else

@@ -2,20 +2,26 @@ require 'scm_tool'
 
 class Git < SCMTool
   
-  def initialize url
-    super('git', url)
+  class << self
+    def name; return 'git'; end
+    def autoconfigurable; return true; end
+    def guess url; return url.end_with? '.git' end
   end
   
-  def checkout src
+  def initialize url
+    super(url)
+  end
+  
+  def checkout src, options = {}
     cmd = '"' + path + '"'
     cmd += " clone #{@url} #{src.basename.to_s}"
-    $platform.execute cmd, src.dirname
+    $platform.execute cmd, {:wd => src.dirname}.merge(options)
   end
   
   def update src
     cmd = '"' + path + '"'
     #cmd += ' fetch'
-    $platform.execute cmd, src
+    $platform.execute cmd, wd: src
   end
   
   def branch src, branch
@@ -28,7 +34,7 @@ class Git < SCMTool
   
   def tags src
     cmd = '"' + path + '" tag'
-    $platform.execute cmd, src.dirname
+    $platform.execute cmd, wd: src.dirname
   end
-  
+    
 end
