@@ -5,47 +5,16 @@ require 'rbconfig'
 
 $juddir = Pathname.new(__FILE__).realpath.dirname
 $:.unshift $juddir.join('Library').to_s
+$:.unshift $juddir.join('Platforms').to_s
 $:.unshift $juddir.join('Tools').to_s
 
 require 'config'
 require 'platform'
+require 'utilities'
 
 at_exit { Jud::Config.instance.save }
 
-host_os = RbConfig::CONFIG['host_os']
-host_os = 'darwin' if host_os.match /^darwin/
-
-begin
-  load $juddir.join('Platforms', host_os + '.rb')
-  $platform = Object.const_get(host_os.capitalize).new
-rescue LoadError
-  puts Platform.red("Can't load platform " + host_os)
-  require 'Platforms/default'
-  $platform = Default.new
-end
-
-require 'tool'
-Dir.glob $juddir.join('Tools', '*.rb') do |rb|
-  load rb
-end
-
-#$platform.load_env
-
-def subsubclasses cl
-  return ObjectSpace.each_object(Class).select { |klass| klass < cl }
-end
-
 case ARGV.first
-when 'autoconfigure' then
-  subsubclasses(Tool).each do |tool|
-    if tool.autoconfigurable then
-      if tool.variants.include? $platform.variant then
-        tool.autoconfigure
-      end
-    end
-  end
-  $platform.autoconfigure
-  exit
 when 'download' then
   ARGV.shift
   url = ARGV.shift
@@ -99,40 +68,36 @@ when 'download' then
   end
 when 'create' then
   ARGV.shift
-  platform = ARGV.shift
   repository = ARGV.shift
-  Platform.create platform, repository
-  Jud::Config.instance.config['main']['default'] = platform
-  exit
-when 'init' then
-  ARGV.shift
-  scm = ARGV.shift
-  url = ARGV.shift
-  scm = Object.const_get(scm).new(url)
-  prefix = Pathname.new(ARGV.shift)
-  Dir.mkdir prefix.to_s if not File.directory? prefix.to_s
-  prefix = prefix.realpath
-  home = prefix.join('home')
-  scm.checkout home
-  Jud::Config.instance.config['main']['scm'] = scm
-  Jud::Config.instance.config['main']['home'] = home.to_s
-  Jud::Config.instance.config['main']['src'] = prefix.join('src').to_s
-  Jud::Config.instance.config['main']['build'] = prefix.join('build').to_s
-  Jud::Config.instance.config['main']['install'] = prefix.join('install').to_s
-  Jud::Config.instance.config['main']['packages'] = prefix.join('packages').to_s
+  name = ARGV.shift
+  composites = []
+  while ARGV.length > 0
+    composites << ARGV.shift
+  end
+  Platform.create repository, name, composites
+  Jud::Config.instance.config['main']['default'] = name
   exit
 end
 
-if not Jud::Config.instance.config['main'].include? 'home' then
-  abort('Please, initialize jud with jud init [Git|SVN] <url> <path>')
-else
-  scm = Jud::Config.instance.config['main']['scm']
-  $home = Pathname.new(Jud::Config.instance.config['main']['home'])
-  $src = Pathname.new(Jud::Config.instance.config['main']['src'])
-  $build = Pathname.new(Jud::Config.instance.config['main']['build'])
-  $install = Pathname.new(Jud::Config.instance.config['main']['install'])
-  $packdir = Pathname.new(Jud::Config.instance.config['main']['packages'])
+$general_config = Jud::Config.instance.config['main']
+
+if not Jud::Config.instance.config['main'].include? 'default' then
+  abort('Please, create a platform with jud create <repository> <platform>')
 end
+
+$tools_config = Jud::Config.instance.config['tools']
+
+platform = $general_config['default']
+$platform_config = Jud::Config.instance.config['platforms'][platform]
+
+$platform = Platform.new platform
+
+require 'tool'
+Dir.glob $juddir.join('Tools', '*.rb') do |rb|
+  load rb
+end
+
+$platform.load_tools
 
 $:.unshift $home.join('Applications').to_s
 
@@ -158,6 +123,18 @@ when 'help', nil
     ' [tag <app> <tag>]' +
     ' [tags <app>]' +
     "\n"
+when 'autoconfigure'
+  ARGV.shift
+  subsubclasses(Application).each do |application|
+    application.languages.each do |language|
+      compiler = $platform.get_compiler language
+      compiler.autoconfigure
+    end
+    application.tools.each do |tool|
+      $platform.add_tool tool
+      tool.autoconfigure
+    end
+  end
 when 'branch'
   ARGV.shift
   app = Object.const_get(ARGV.shift).new

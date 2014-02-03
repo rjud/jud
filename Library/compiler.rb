@@ -1,9 +1,11 @@
 require 'Tool'
 
-class Compiler < Tool
-  
-  def initialize load_path=false
-    super(load_path)
+module Jud
+  class Compiler < Tool
+    
+    def initialize name, load_path=false
+      super(name, load_path)
+    end
+    
   end
-  
 end

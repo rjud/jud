@@ -7,6 +7,8 @@ class Platform
   UNIX  = 1 << 1
   WIN32 = 1 << 2
   
+  attr_reader :src, :build, :install, :packdir
+  
   attr_accessor :cmake_native_build_tool
   attr_accessor :cmake_native_compiler
   attr_accessor :cmake_generator
@@ -24,13 +26,77 @@ class Platform
   def self.cyan text; colorize text, "\033[36m"; end
   def self.gray text; colorize text, "\033[37m"; end
   
-  def self.create platform, repository
-    config = Jud::Config.instance.config['platforms'][platform]
+  def self.create repository, name, composites
+    repo_config = Jud::Config.instance.get_repo_config repository
+    prefix = Pathname.new repo_config['dir']
+    config = Jud::Config.instance.config['platforms'][name]
     config['repository'] = repository
+    config['src'] = prefix.join("src").to_s
+    config['build'] = prefix.join("build-#{name}").to_s
+    config['install'] = prefix.join("install-#{name}").to_s
+    config['packages'] = prefix.join("packages").to_s
+    config['tools'] = []
+    config['composites'] = []
+    composites.each do |composite|
+      begin
+        load $juddir.join("Platforms", "#{composite}.rb")
+        klass = Object.const_get(composite.capitalize)
+        klass.create config
+        config['composites'] << klass.name
+      rescue LoadError
+        raise Error, "Can't load platform #{composite}"
+      end
+    end
   end
   
-  def load_env
-    @cmake_native_compiler.load_env
+  def initialize name
+    @config = Jud::Config.instance.get_platform_config name
+    @repo_config = Jud::Config.instance.get_repo_config @config['repository']
+    $home = Pathname.new(@repo_config['home'])
+    $src = Pathname.new(@config['src'])
+    $build = Pathname.new(@config['build'])
+    $install = Pathname.new(@config['install'])
+    $packdir = Pathname.new(@config['packages'])
+    @tools = {}
+  end
+    
+  def get_compiler language
+    compiler_typenames = subsubclasses(language.class.compiler).collect{ |compiler| compiler.name }
+    config = @config['tools'].each do |name|
+      tool = get_tool name
+      if compiler_typenames.include? tool.class.name then
+        puts (Platform.green "Found compiler #{tool.name} for language #{language.class.name}")
+        return tool
+      end
+    end
+    puts (Platform.red "Can't find compiler for language #{language.class.name}")
+  end
+  
+  def add_tool tool
+    @tools[tool.name] = tool
+    @config['tools'] << tool.name
+    @config['tools'].uniq!
+  end
+  
+  def get_tool name
+    if @tools.include? name then
+      return @tools[name]
+    else
+      config = Jud::Config.instance.config['tools']
+      if not config.include? name
+        raise Error, "No tool named #{name}"
+      end
+      tool = Object.const_get(config[name]['type']).new(name, config[name])
+      @tools[name] = tool
+      return tool
+    end
+  end
+  
+  def load_tools
+    @config['tools'].each do |name|
+      tool = $platform.get_tool name
+      tool.load_env
+    end
   end
   
   # wd, safe, keep

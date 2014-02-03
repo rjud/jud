@@ -3,8 +3,11 @@ require 'scm_tool'
 class SVN < SCMTool
   
   class << self
-    def name; return 'svn'; end
     def autoconfigurable; return false; end
+  end
+  
+  def initialize name
+    super(name)
   end
   
   def checkout src, options = {}

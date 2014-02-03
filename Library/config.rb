@@ -6,6 +6,8 @@ module Jud
   class Config
     include Singleton
     
+    class Error < RuntimeError; end
+    
     attr_accessor :config
     attr_reader :filename, :prefix
     
@@ -37,6 +39,22 @@ module Jud
       if not @config['applications'].include? 'separate_install_trees' then
         @config['applications']['separate_install_trees'] = true
       end
+    end
+    
+    def get_repo_config repository
+      config = @config['main']['repositories']
+      if not config.include? repository then
+        raise Error, "No repository #{repository}"
+      end
+      return config[repository]
+    end
+    
+    def get_platform_config platform
+      config = @config['platforms']
+      if not config.include? platform then
+        raise Error, "No platform #{platform}"
+      end
+      return config[platform]
     end
     
     def save

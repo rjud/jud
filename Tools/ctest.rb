@@ -6,13 +6,13 @@ require 'open3'
 class CTest < SubmitTool
   
   class << self
-    def name; return 'ctest'; end
     def autoconfigurable; return true; end
   end
   
   attr_reader :native_build_tool
   
-  def initialize
+  def initialize name, options = {}
+    super(name)
     @native_build_tool = native_build_tool
   end
   

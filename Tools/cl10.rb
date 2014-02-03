@@ -9,9 +9,9 @@ require 'cl'
 # C:\\Program Files\\Microsoft SDKs\\Windows\\v7.0A\\bin\\NETFX 4.0 Tools"
 
 class Cl10 < Cl
-    
-  def initialize
-    super('10.0')
+  
+  def initialize name, config = {}
+    super(name, '10.0', config)
   end
   
   def get_windows_sdk_dir

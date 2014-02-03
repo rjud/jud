@@ -3,8 +3,11 @@ require 'build_tool'
 class Make < BuildTool
   
   class << self
-    def name; return 'make'; end
     def autoconfigurable; return true; end
+  end
+  
+  def initialize name
+    super(name)
   end
   
   def build build

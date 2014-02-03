@@ -4,14 +4,14 @@ require 'open3'
 class CMake < BuildTool
   
   class << self
-    def name; return 'cmake'; end
     def autoconfigurable; return true; end
   end
   
   attr_reader :native_build_tool
   
-  def initialize
-    @native_build_tool = $platform.cmake_native_build_tool
+  def initialize name, options = {}
+    super(name)
+    @native_build_tool = $platform.get_tool $platform_config['Native Build Tool']
   end
   
   def option_to_s opt
@@ -23,7 +23,7 @@ class CMake < BuildTool
   
   def configure src, build, install, build_type, options={}
     cmd = '"' + path + '"'
-    cmd += ' -G "' + $platform.cmake_generator + '"' if $platform.cmake_generator
+    cmd += ' -G "' + $platform_config['CMake Generator'] + '"' if $platform_config.include? 'CMake Generator'
     cmd += ' -DCMAKE_INSTALL_PREFIX=' + install.to_s
     cmd += ' -DCMAKE_BUILD_TYPE=' + build_type.to_s
     resolve_options(options).each do |opt|

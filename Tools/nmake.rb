@@ -4,7 +4,6 @@ require 'cl'
 class NMake < Make
   
   class << self
-    def name; return 'nmake'; end
     def autoconfigurable; return true; end
     def autoconfigure
       version, tmp = Cl.autoconfigure2
@@ -14,6 +13,10 @@ class NMake < Make
         autoconfigure_executable name
       end
     end
+  end
+  
+  def initialize name, options = {}
+    super(name)
   end
   
 end

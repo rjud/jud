@@ -160,11 +160,19 @@ class Application
   end
     
   class << self
-    
-    attr_reader :scm_tool, :build_tool, :submit_tool, :repository
+        
+    attr_reader :scm_tool, :languages, :build_tool, :submit_tool, :repository
     
     def pack_tool
-      @pack_tool ? @pack_tool : ZipTool.new
+      @pack_tool ? @pack_tool : (ZipTool.new 'zip')
+    end
+    
+    def languages
+      @languages ||= []
+    end
+    
+    def tools
+      @tools ||= []
     end
     
     def build_types
@@ -183,30 +191,47 @@ class Application
       @build_types << name
     end
     
+    def c &block
+      languages << Jud::C.new
+    end
+    
+    def cxx
+      languages << Cxx.new
+    end
+    
+    def java
+      languages << Java.new
+    end
+    
     def cmake &block
-      @build_tool= CMake.new
+      @build_tool= CMake.new 'cmake'
       @build_tool.instance_eval &block if block_given? &block
+      tools << @build_tool
     end
     
     def ctest &block
-      @submit_tool = CTest.new
+      @submit_tool = CTest.new 'ctest'
       @submit_tool.instance_eval &block if block_given? &block
+      tools << @submit_tool
     end
     
     def git url
-      @scm_tool = Git.new url
+      @scm_tool = Git.new 'git', url
+      tools << @scm_tool
     end
     
     def redmine url, projectid
-      @repository = Redmine.new url, projectid
+      @repository = Redmine.new 'redmine', url, projectid
     end
     
     def svn url
-      @scm_tool = SVN.new url
+      @scm_tool = SVN.new 'svn', url
+      tools << @scm_tool
     end
     
     def zip
-      @pack_tool = ZipTool.new
+      @pack_tool = ZipTool.new 'zip'
+      tools << @pack_tool
     end
     
   end    

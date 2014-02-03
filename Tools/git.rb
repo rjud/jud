@@ -3,15 +3,14 @@ require 'scm_tool'
 class Git < SCMTool
   
   class << self
-    def name; return 'git'; end
     def autoconfigurable; return true; end
     def guess url; return url.end_with? '.git' end
   end
   
-  def initialize url
-    super(url)
+  def initialize name, url, options = {}
+    super(name, url)
   end
-  
+    
   def checkout src, options = {}
     cmd = '"' + path + '"'
     cmd += " clone #{@url} #{src.basename.to_s}"

@@ -1,35 +1,10 @@
-require 'compiler'
+require 'c'
 require 'win32/registry'
 
-class Cl < Compiler
+class Cl < Jud::C::Compiler
   
   class << self
-    
-    def name; return "cl"; end
-    def autoconfigurable; return true; end
-    
-    def autoconfigure
-      name, major = self.autoconfigure2
-      if name then
-        cl = Cl.new name
-        autoconfigure_directory 'VCInstallDir', cl.get_vc_install_dir.to_s
-        autoconfigure_directory 'VSInstallDir', cl.get_vs_install_dir.to_s
-        #autoconfigure_directory 'VCCommonToolsDir', cl.get_vs_common_tools_dir.to_s
-      end
-    end
-    
-    def autoconfigure2
-      path = 'SOFTWARE\Microsoft\VisualStudio\SxS\VC7'
-      Win32::Registry::HKEY_LOCAL_MACHINE.open(path) do |reg|
-        reg.each_value do |name, type, data|
-          if /^(?<major>\d+)\.\d+/ =~ name then
-            puts (Platform.green "Found C++ compiler msvc#{major}")
-            return name, major
-          end
-        end
-      end
-    end
-    
+        
     def variants; return [Platform::WIN32]; end
     
     def inherited subclass
@@ -38,8 +13,21 @@ class Cl < Compiler
     
   end
   
-  def initialize(version)
+  def initialize(name, version, config = {})
+    super(name)
     @version = version
+    @vc_install_dir = get_directory config, 'VCInstallDir'
+    @vs_install_dir = get_directory config, 'VSInstallDir'
+    @vc_common_tools_dir = get_directory config, 'VCCommonToolsDir'
+    @windows_sdk_dir = get_directory config, 'WindowsSdkDir'
+  end
+  
+  def autoconfigure
+    super
+    configure_directory :@vc_install_dir, 'VCInstallDir', lambda { get_vc_install_dir }
+    configure_directory :@vs_install_dir, 'VSInstallDir', lambda { get_vs_install_dir }
+    configure_directory :@vc_common_tools_dir, 'VCCommonToolsDir', lambda { get_vs_common_tools_dir }
+    configure_directory :@windows_sdk_dir, 'WindowsSdkDir', lambda { get_windows_sdk_dir }
   end
   
   def reg_query path, name
@@ -60,21 +48,19 @@ class Cl < Compiler
   
   def load_env
     # Microsoft Visual Studio
-    path = get_vs_install_dir.join('Common7', 'IDE').to_s
+    path = @vs_install_dir.join('Common7', 'IDE').to_s
     # Microsoft Visual Studio Common Tools
-    path << ';' << get_vs_common_tools_dir.to_s
+    path << ';' << @vs_common_tools_dir.to_s
     # Microsoft Visual Compiler
-    vc_install_dir = get_vc_install_dir
-    path << ';' << vc_install_dir.join('BIN').to_s
+    path << ';' << @vc_install_dir.join('BIN').to_s
     # We may add VCPackages to path
-    ENV['INCLUDE'] = vc_install_dir.join('INCLUDE').to_s
-    ENV['LIB'] = vc_install_dir.join('LIB').to_s
-    ENV['LIBPATH'] = vc_install_dir.join('LIB').to_s
+    ENV['INCLUDE'] = @vc_install_dir.join('INCLUDE').to_s
+    ENV['LIB'] = @vc_install_dir.join('LIB').to_s
+    ENV['LIBPATH'] = @vc_install_dir.join('LIB').to_s
     # Microsoft SDK
-    sdk_install_dir = get_windows_sdk_dir
-    path << ";" << sdk_install_dir.join('bin').to_s
-    ENV['INCLUDE'] += ";" << sdk_install_dir.join('include').to_s
-    ENV['LIB'] += ";" << sdk_install_dir.join('lib').to_s
+    path << ";" << @windows_sdk_dir.join('bin').to_s
+    ENV['INCLUDE'] += ";" << @windows_sdk_dir.join('include').to_s
+    ENV['LIB'] += ";" << @windows_sdk_dir.join('lib').to_s
     # Set new environment
     ENV['PATH'] = path << ";" << ENV['PATH']
   end

@@ -2,7 +2,9 @@ require 'repository_tool'
 
 class Redmine < RepositoryTool
   
-  def initialize url, projectid
+  def initialize name, url, projectid
+    
+    super(name, false)
     
     @url = url
     @projectid = projectid
