@@ -84,92 +84,98 @@ when 'create' then
   exit
 end
 
-if not Jud::Config.instance.config['main'].include? 'default' then
-  abort('Please, create a platform with jud create <repository> <platform>')
-end
-
-platform = $general_config['default']
-$platform_config = Jud::Config.instance.config['platforms'][platform]
-
-$platform = Platform.new platform
-$platform.load_tools
-
-$:.unshift $home.join('Applications').to_s
-
-require 'application'
-Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
-  load rb
-end
-
-require 'configuration'
-Dir.glob $home.join('Configurations', '*.rb').to_s do |rb|
-  load rb
-end
-
-case ARGV.first
-when 'help', nil
-  print 'jud' +
-    ' [branch <app> <branch>]' +
-    ' [build <conf>]' +
-    ' [test <conf>]' +
-    ' [install <app> [+<opt>]*[-<opt>]*]' +
-    ' [option <path1> <pathn>* <value>' +
-    ' [options <app>]' +
-    ' [tag <app> <tag>]' +
-    ' [tags <app>]' +
-    "\n"
-when 'branch'
-  ARGV.shift
-  app = Object.const_get(ARGV.shift).new
-  app.scm_tool.branch app.src, ARGV.shift
-when 'tag'
-  ARGV.shift
-  app = Object.const_get(ARGV.shift).new
-  app.class.scm_tool.tag app.src, ARGV.shift
-when 'tags'
-  ARGV.shift
-  app = Object.const_get(ARGV.shift).new
-  app.class.scm_tool.tags app.src
-when 'install'
-  ARGV.shift
-  name = ARGV.shift
-  options = {}
-  while ARGV.length > 0
-    arg = ARGV.shift
-    case arg[0]
-    when '-'
-      options[arg[1..-1].to_sym] = false
-    when '+'
-      options[arg[1..-1].to_sym] = true
+begin
+  
+  if not Jud::Config.instance.config['main'].include? 'default' then
+    abort('Please, create a platform with jud create <repository> <platform>')
+  end
+  
+  platform = $general_config['default']
+  $platform_config = Jud::Config.instance.config['platforms'][platform]
+  
+  $platform = Platform.new platform
+  $platform.load_tools
+  
+  $:.unshift $home.join('Applications').to_s
+  
+  require 'application'
+  Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
+    load rb
+  end
+  
+  require 'configuration'
+  Dir.glob $home.join('Configurations', '*.rb').to_s do |rb|
+    load rb
+  end
+  
+  case ARGV.first
+  when 'help', nil
+    print 'jud' +
+      ' [branch <app> <branch>]' +
+      ' [build <conf>]' +
+      ' [test <conf>]' +
+      ' [install <app> [+<opt>]*[-<opt>]*]' +
+      ' [option <path1> <pathn>* <value>' +
+      ' [options <app>]' +
+      ' [tag <app> <tag>]' +
+      ' [tags <app>]' +
+      "\n"
+  when 'branch'
+    ARGV.shift
+    app = Object.const_get(ARGV.shift).new
+    app.scm_tool.branch app.src, ARGV.shift
+  when 'tag'
+    ARGV.shift
+    app = Object.const_get(ARGV.shift).new
+    app.class.scm_tool.tag app.src, ARGV.shift
+  when 'tags'
+    ARGV.shift
+    app = Object.const_get(ARGV.shift).new
+    app.class.scm_tool.tags app.src
+  when 'install'
+    ARGV.shift
+    name = ARGV.shift
+    options = {}
+    while ARGV.length > 0
+      arg = ARGV.shift
+      case arg[0]
+      when '-'
+        options[arg[1..-1].to_sym] = false
+      when '+'
+        options[arg[1..-1].to_sym] = true
+      end
     end
+    claz = Object.const_get(name)
+    claz.new.install options
+  when 'options'
+    ARGV.shift
+    claz = Object.const_get(ARGV.shift)
+    claz.build_tool.options.each do | key, option |
+      puts key, "\t" + (option[1].nil? ? 'No description' : option[1])
+    end
+  when 'option'
+    ARGV.shift
+    h = Jud::Config.instance.config
+    paths = ARGV.shift.split('.')
+    paths[0..-2].each { |p| h = h[p] }
+    h[paths.last] = ARGV.shift
+  when 'build'
+    ARGV.shift
+    conf = Object.const_get(ARGV.shift).new
+    conf.build
+  when 'submit'
+    ARGV.shift
+    conf = Object.const_get(ARGV.shift).new
+    conf.submit
+  when 'pack'
+    ARGV.shift
+    app = Object.const_get(ARGV.shift).new
+    app.pack
+  when 'update'
+    ARGV.shift
+    scm.update $home
   end
-  claz = Object.const_get(name)
-  claz.new.install options
-when 'options'
-  ARGV.shift
-  claz = Object.const_get(ARGV.shift)
-  claz.build_tool.options.each do | key, option |
-    puts key, "\t" + (option[1].nil? ? 'No description' : option[1])
-  end
-when 'option'
-  ARGV.shift
-  h = Jud::Config.instance.config
-  paths = ARGV.shift.split('.')
-  paths[0..-2].each { |p| h = h[p] }
-  h[paths.last] = ARGV.shift
-when 'build'
-  ARGV.shift
-  conf = Object.const_get(ARGV.shift).new
-  conf.build
-when 'submit'
-  ARGV.shift
-  conf = Object.const_get(ARGV.shift).new
-  conf.submit
-when 'pack'
-  ARGV.shift
-  app = Object.const_get(ARGV.shift).new
-  app.pack
-when 'update'
-  ARGV.shift
-  scm.update $home
+  
+rescue Platform::Error, Tool::Error => e
+  puts (Platform.red e)
 end

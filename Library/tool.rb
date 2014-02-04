@@ -2,6 +2,8 @@ require 'config'
 
 class Tool
   
+  class Error < RuntimeError; end
+  
   class << self
     
     attr_reader :path
@@ -10,14 +12,19 @@ class Tool
         
     def load_path; return true; end
     
+    def get_config
+      if $platform_config then
+        $platform_config['tools'][name] = name unless $platform_config['tools'].include? name
+        return $tools_config[$platform_config['tools'][name]]
+      else
+        return $tools_config[name]
+      end
+    end
+    
     def configure
       puts (Platform.blue "Configure #{self.name}")
       # Get the current configuration of this tool
-      config = $tools_config[name]
-      if $platform_config then
-        $platform_config['tools'][name] = name unless $platform_config['tools'].include? name
-        config = $tools_config[$platform_config['tools'][name]]
-      end
+      config = get_config
       # Configure path of this tool if needed
       if load_path then
         configure_property config, 'path', lambda { Platform.find_executable name, optional=true }
@@ -59,9 +66,10 @@ class Tool
     
   end
   
-  attr_reader :name
+  attr_reader :config, :name
   
   def initialize name
+    @config = self.class.get_config
     @name = name
   end
   

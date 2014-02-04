@@ -16,14 +16,14 @@ class Redmine < RepositoryTool
     @projectid = projectid
     @files_page_path = '/projects/' + @projectid + '/files'
     
-    config = Jud::Config.instance.config['tools']['redmine'][@url]
-    if config.key? 'username' then
-      @username = config['username']
-      @password = config['password']
+    config = @config['servers'][@url]
+    if config.key? 'username' and not config['username'].empty?
+      @username = @config['username']
+      @password = @config['password']
     else
       config['username'] = ''
       config['password'] = ''
-      abort 'Please edit ' + Jud::Config.instance.filename.to_s + ' to set username and password for redmine server ' + @url
+      raise Error, "Please, edit #{Jud::Config.instance.filename.to_s} to set username and password for redmine server #{@url}."
     end
     
   end
