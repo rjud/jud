@@ -13,11 +13,14 @@ class Tool
     def configure
       puts (Platform.blue "Configure #{self.name}")
       # Get the current configuration of this tool
-      $platform_config['tools'][name] = name unless $platform_config['tools'].include? name
-      config = $tools_config[$platform_config['tools'][name]]
+      config = $tools_config[name]
+      if $platform_config then
+        $platform_config['tools'][name] = name unless $platform_config['tools'].include? name
+        config = $tools_config[$platform_config['tools'][name]]
+      end
       # Configure path of this tool if needed
       if load_path then
-        configure_property config, 'path', lambda { $platform.find_executable name, optional=true }
+        configure_property config, 'path', lambda { Platform.find_executable name, optional=true }
         @path = get_directory config, 'path'
       end
       # Configure extra properties

@@ -28,7 +28,7 @@ class CMake < BuildTool
       cmd += ' -D' + opt.name + '=' + (option_to_s opt)
     end
     cmd += ' ' + src.to_s
-    $platform.execute cmd, wd: build
+    Platform.execute cmd, wd: build
   end
   
   def build *args

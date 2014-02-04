@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby -W0
 
 require 'pathname'
-require 'rbconfig'
 
 $juddir = Pathname.new(__FILE__).realpath.dirname
 $:.unshift $juddir.join('Library').to_s
@@ -13,6 +12,12 @@ require 'platform'
 require 'utilities'
 
 at_exit { Jud::Config.instance.save }
+
+$general_config = Jud::Config.instance.config['main']
+$tools_config = Jud::Config.instance.config['tools']
+
+require 'git'
+require 'svn'
 
 case ARGV.first
 when 'download' then
@@ -28,7 +33,7 @@ when 'download' then
     begin
       if klass.guess url then
         puts Platform.green("#{url} looks like a Git repository")
-        scm = klass.new(url)
+        scm = klass.new(klass.name, url)
         status = scm.checkout home
       end
     rescue Platform::Error => e
@@ -41,7 +46,7 @@ when 'download' then
       subsubclasses(SCMTool).each do |klass|
         begin
           puts (Platform.green "Try to download with #{klass.name}")
-          scm = klass.new(url)
+          scm = klass.new(klass.name, url)
           status = scm.checkout home, :safe => true
           throw :download_ok if status[0].success?
         rescue Platform::Error => e
@@ -79,13 +84,9 @@ when 'create' then
   exit
 end
 
-$general_config = Jud::Config.instance.config['main']
-
 if not Jud::Config.instance.config['main'].include? 'default' then
   abort('Please, create a platform with jud create <repository> <platform>')
 end
-
-$tools_config = Jud::Config.instance.config['tools']
 
 platform = $general_config['default']
 $platform_config = Jud::Config.instance.config['platforms'][platform]

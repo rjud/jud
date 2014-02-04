@@ -28,7 +28,6 @@ class Platform
     config['build'] = prefix.join("build-#{name}").to_s
     config['install'] = prefix.join("install-#{name}").to_s
     config['packages'] = prefix.join("packages").to_s
-    config['tools'] = []
     config['composites'] = []
     composites.each do |composite|
       begin
@@ -82,7 +81,7 @@ class Platform
   end
   
   # wd, safe, keep
-  def execute cmd, options = {}
+  def self.execute cmd, options = {}
     options = {safe: false}.merge(options)
     if options.key? :wd
       wd = options[:wd]
@@ -108,15 +107,12 @@ class Platform
     end
   end
   
-  def find_executable exe, optional=false
+  def self.find_executable exe, optional=false
     exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
     ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
       exts.each do |ext|
         filename = File.join(path, "#{exe}#{ext}")
-        if File.executable? filename
-          puts Platform.green('Found ' + exe + ': ' + filename) 
-          return filename
-        end
+        return filename if File.executable? filename
       end
     end
     puts (Platform.red "Can't find #{exe}")
