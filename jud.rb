@@ -94,7 +94,6 @@ begin
   $platform_config = Jud::Config.instance.config['platforms'][platform]
   
   $platform = Platform.new platform
-  $platform.load_tools
   
   $:.unshift $home.join('Applications').to_s
   

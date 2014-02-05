@@ -12,11 +12,6 @@ module Jud
       
     end
     
-    def initialize
-      @cmake_native_build_tool = NMake.new
-      @cmake_generator = "NMake Makefiles"
-    end
-    
     def variant; Platform::WIN32; end
     
   end

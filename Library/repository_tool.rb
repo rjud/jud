@@ -1,7 +1,7 @@
 class RepositoryTool < Tool
 
-  def initialize name
-    super(name)
+  def initialize
+    super()
   end
   
 end

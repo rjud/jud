@@ -1,3 +1,4 @@
+require 'mechanize'
 require 'repository_tool'
 
 class Redmine < RepositoryTool
@@ -8,18 +9,19 @@ class Redmine < RepositoryTool
   
   Redmine.configure
   
-  def initialize name, url, projectid
+  def initialize url, projectid
     
-    super(name)
+    super()
     
     @url = url
     @projectid = projectid
     @files_page_path = '/projects/' + @projectid + '/files'
+    @versions_page_path = '/projects/' + @projectid + '/versions'
     
     config = @config['servers'][@url]
     if config.key? 'username' and not config['username'].empty?
-      @username = @config['username']
-      @password = @config['password']
+      @username = config['username']
+      @password = config['password']
     else
       config['username'] = ''
       config['password'] = ''
@@ -29,9 +31,7 @@ class Redmine < RepositoryTool
   end
   
   def login
-    
-    require 'mechanize'
-    
+        
     agent = Mechanize.new
     
     agent.get(URI.join(@url, '/login')) do |login_page|
@@ -45,26 +45,41 @@ class Redmine < RepositoryTool
     
   end
   
+  def agent
+    @agent ||= login
+  end
+  
+  def version_id version
+    agent.get URI.join(@url, @versions_page_path) do |page|
+      page.links_with(:text => version).each do |link|
+        return $1 if link.uri.to_s =~ /\/versions\/(\d+)/
+      end
+    end
+    return nil
+  end
+  
+  def version! version
+    uri = URI.join(@url, @versions_page_path + '/new')    
+    agent.get uri do |page|
+      puts Platform.blue("Create version #{version} at #{uri.to_s}")
+      page.form_with(:action => @versions_page_path) do |form|
+        form.set_fields 'version[name]' => version
+      end.submit
+    end
+  end
+  
   def exist? filename
-    
-    agent = login
-    
-    agent.get URI.join(@url, @files_page_path) do |files_page|
-      file_link = files_page.link_with(:text => filename.basename.to_s)
+    agent.get URI.join(@url, @files_page_path) do |page|
+      file_link = page.link_with(:text => filename.basename.to_s)
       return (not file_link.nil?)
     end
-    
     return false
-    
   end
   
   def download filename
-    
-    agent = login
     agent.pluggable_parser.default = Mechanize::Download
-    
-    agent.get URI.join(@url, @files_page_path) do |files_page|
-      file_link = files_page.link_with(:text => filename.basename.to_s)
+    agent.get URI.join(@url, @files_page_path) do |page|
+      file_link = page.link_with(:text => filename.basename.to_s)
       if file_link
         file_id = file_link.href.match(/download\/(\d+)/)[1].to_i
         agent.get(URI.join(@url, "/attachments/#{file_id}")).save(filename.to_s)
@@ -78,20 +93,27 @@ class Redmine < RepositoryTool
   
   def upload filename
     
-    agent = login
-        
-    files_page_uri = URI.join(@url, @files_page_path + '/new')
+    version = nil
     
-    agent.get files_page_uri do |upload_page|
-      puts Platform.blue('Upload ' + filename.to_s + ' to ' + files_page_uri.to_s)
-      upload_page.form_with(:action => @files_page_path) do |upload_form|
-        if upload_form.has_field? 'version_id' then
-          #upload_form.set_fields :version_id => 'test'
+    versionid = nil
+    if version then
+      versionid = version_id version
+      version! version if versionid.nil?
+      versionid = version_id version
+    end
+    
+    uri = URI.join(@url, @files_page_path + '/new')
+    
+    agent.get uri do |page|
+      puts Platform.blue("Upload #{filename.to_s} to #{uri.to_s}")
+      page.form_with(:action => @files_page_path) do |form|
+        if versionid then
+          form.set_fields :version_id => versionid
         end
-        upload_form.file_uploads.first.file_name = filename.to_s
+        form.file_uploads.first.file_name = filename.to_s
       end.submit
     end
-        
+    
   end
   
 end

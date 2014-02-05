@@ -11,11 +11,6 @@ class Darwin < Platform
     
   end
   
-  #def initialize
-  #  @cmake_native_build_tool = Make.new
-  #  @cmake_generator = "Make Makefiles"
-  #end
-  
   def variant; Platform::UNIX; end
   
 end

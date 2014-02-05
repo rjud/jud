@@ -8,13 +8,17 @@ class Tool
     
     attr_reader :path
     
+    def basename; name.downcase; end
+    
     def variants; return [Platform::UNIX, Platform::WIN32]; end
         
     def load_path; return true; end
     
     def get_config
       if $platform_config then
-        $platform_config['tools'][name] = name unless $platform_config['tools'].include? name
+        unless $platform_config['tools'].include? name then
+          $platform_config['tools'][name] = name
+        end
         return $tools_config[$platform_config['tools'][name]]
       else
         return $tools_config[name]
@@ -27,7 +31,7 @@ class Tool
       config = get_config
       # Configure path of this tool if needed
       if load_path then
-        configure_property config, 'path', lambda { Platform.find_executable name, optional=true }
+        configure_property config, 'path', lambda { Platform.find_executable basename, optional=true }
         @path = get_directory config, 'path'
       end
       # Configure extra properties
@@ -66,11 +70,10 @@ class Tool
     
   end
   
-  attr_reader :config, :name
+  attr_reader :config
   
-  def initialize name
+  def initialize
     @config = self.class.get_config
-    @name = name
   end
   
   def path

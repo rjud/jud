@@ -7,8 +7,8 @@ class BuildTool < Tool
   
   attr_reader :options
   
-  def initialize name
-    super(name)
+  def initialize
+    super()
     @options = {}
   end
   
@@ -20,7 +20,7 @@ class BuildTool < Tool
     ret = []
     @options.each do |id, opt|
       if opt.default and (opt.cond.nil? or options.key? opt.cond) then
-        ret << ResolvedOption.new(id.to_s, opt.type, true, opt.default)
+        ret << ResolvedOption.new(id.to_s, opt.type, true, opt.default.call)
       end
     end
     options.each do |id, enabled|

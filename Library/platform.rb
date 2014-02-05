@@ -1,3 +1,4 @@
+require 'fileutils'
 require 'open3'
 
 class Platform
@@ -74,11 +75,11 @@ class Platform
     return tool
   end
   
-  def load_tools
-    @config['tools'].each_key do |name|
-      load_tool name
-    end
-  end
+#  def load_tools
+#    @config['tools'].each_key do |name|
+#      load_tool name
+#    end
+#  end
   
   # wd, safe, keep
   def self.execute cmd, options = {}

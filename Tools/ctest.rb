@@ -5,16 +5,12 @@ require 'open3'
 
 class CTest < SubmitTool
   
-  class << self
-    def autoconfigurable; return true; end
-  end
-  
   CTest.configure
   
   attr_reader :native_build_tool
   
-  def initialize name, options = {}
-    super(name)
+  def initialize options = {}
+    super()
     @native_build_tool = native_build_tool
   end
   

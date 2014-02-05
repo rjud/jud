@@ -10,8 +10,8 @@ class SubmitTool < Tool
   
   attr_accessor :build_tool, :scm_tool
   
-  def initialize name
-    super(name)
+  def initialize
+    super()
   end
   
 end

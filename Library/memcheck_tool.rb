@@ -2,8 +2,8 @@ require 'Tool'
 
 class MemcheckTool < Tool
   
-  def initialize(name)
-    super(name)
+  def initialize
+    super()
   end
   
 end

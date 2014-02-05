@@ -6,6 +6,8 @@ class Application
   
   def initialize
     @name = self.class.name
+    @app_config = $platform_config['applications']
+    @config = @app_config[@name] 
     @install = prefix
     @packdir = $packdir
   end
@@ -19,7 +21,12 @@ class Application
   end
   
   def prefix
-    if Jud::Config.instance.config['applications']['separate_install_trees'] then
+    config = @app_config['separate_install_trees']
+    unless config.boolean? then
+      config = true
+      @app_config['separate_install_trees'] = config = true
+    end
+    if config then
       prefix = $install.join(@name)
     else
       prefix = $install
@@ -51,7 +58,7 @@ class Application
   def install_dependencies options={}
     self.class.depends.each do |depend, cond|
       install = cond.nil? || options[cond]
-      config = Jud::Config.instance.config['applications'][depend.name]
+      config = @app_config[depend.name]
       install = (not config.has_key? 'prefix') if install
       install_dependency depend if install
     end
@@ -81,7 +88,7 @@ class Application
   end
   
   def register_this
-    Jud::Config.instance.config['applications'][@name]['prefix'] = @install.to_s
+    @config['prefix'] = @install.to_s
   end
   
   def install options={}
@@ -109,7 +116,7 @@ class Application
       status = s if s > status
     end
     pack_and_upload if pack? status
-    Jud::Config.instance.config['applications'][@name]['prefix'] = @install.to_s
+    @config['prefix'] = @install.to_s
   end
   
   def pack? status
@@ -121,7 +128,8 @@ class Application
   end
   
   def packfilename
-    self.name + '-' + RbConfig::CONFIG['host'] + '.' + self.class.pack_tool.ext
+    platform = $general_config['default']
+    self.name + '-' + platform + '.' + self.class.pack_tool.ext
   end
   
   def packfile
@@ -203,36 +211,36 @@ class Application
     
     def cmake &block
       require 'cmake'
-      @build_tool= CMake.new 'cmake'
+      @build_tool= CMake.new
       @build_tool.instance_eval &block if block_given? &block
     end
     
     def ctest &block
       require 'ctest'
-      @submit_tool = CTest.new 'ctest'
+      @submit_tool = CTest.new
       @submit_tool.instance_eval &block if block_given? &block
     end
     
     def git url
       require 'git'
-      @scm_tool = Git.new 'git', url
+      @scm_tool = Git.new url
     end
     
     def redmine url, projectid
       require 'redmine'
-      @repository = Redmine.new 'redmine', url, projectid
+      @repository = Redmine.new url, projectid
     end
     
     def svn url
       require 'svn'
-      @scm_tool = SVN.new 'svn', url
+      @scm_tool = SVN.new url
     end
     
     def zip
       require 'ziptool'
-      @pack_tool = ZipTool.new 'zip'
+      @pack_tool = ZipTool.new
     end
     
-  end    
+  end
   
 end

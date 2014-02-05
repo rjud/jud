@@ -7,9 +7,10 @@ class CMake < BuildTool
   
   attr_reader :native_build_tool
   
-  def initialize name
-    super(name)
-    @native_build_tool = $platform.get_tool $platform_config['Native Build Tool']
+  def initialize
+    super()
+    platform = $platform_config['Native Build Tool']
+    @native_build_tool = $platform.get_tool platform
   end
   
   def option_to_s opt
@@ -21,7 +22,9 @@ class CMake < BuildTool
   
   def configure src, build, install, build_type, options={}
     cmd = '"' + path + '"'
-    cmd += ' -G "' + $platform_config['CMake Generator'] + '"' if $platform_config.include? 'CMake Generator'
+    if $platform_config.include? 'CMake Generator' then
+      cmd += ' -G "' + $platform_config['CMake Generator'] + '"' 
+    end
     cmd += ' -DCMAKE_INSTALL_PREFIX=' + install.to_s
     cmd += ' -DCMAKE_BUILD_TYPE=' + build_type.to_s
     resolve_options(options).each do |opt|

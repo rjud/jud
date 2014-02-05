@@ -9,8 +9,8 @@ class SCMTool < Tool
   
   attr_reader :url
   
-  def initialize name, url
-    super(name)
+  def initialize url
+    super()
     @url = url
   end
     

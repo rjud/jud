@@ -4,8 +4,8 @@ class Make < BuildTool
   
   Make.configure
   
-  def initialize name
-    super(name)
+  def initialize
+    super()
   end
   
   def build build

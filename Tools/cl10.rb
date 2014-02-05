@@ -30,8 +30,8 @@ class Cl10 < Cl
   
   Cl10.configure
   
-  def initialize name, config = {}
-    super(name, config)
+  def initialize config = {}
+    super(config)
   end
   
 end

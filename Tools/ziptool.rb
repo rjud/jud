@@ -10,8 +10,8 @@ class ZipTool < PackTool
   
   ZipTool.configure
   
-  def initialize name
-    super(name, 'zip')
+  def initialize
+    super('zip')
   end
   
   def pack_impl filename, directory

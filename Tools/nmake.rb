@@ -5,8 +5,8 @@ class NMake < Make
   
   NMake.configure
   
-  def initialize name, options = {}
-    super(name)
+  def initialize options = {}
+    super()
   end
   
 end

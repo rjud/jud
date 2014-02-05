@@ -51,8 +51,8 @@ class Cl < Jud::C::Compiler
     
   end
   
-  def initialize(name, config = {})
-    super(name)
+  def initialize config = {}
+    super()
   end
   
 end

@@ -35,10 +35,6 @@ module Jud
         end
       end
       iterate_on_hash.call @config
-      # Set some values
-      if not @config['applications'].include? 'separate_install_trees' then
-        @config['applications']['separate_install_trees'] = true
-      end
     end
     
     def get_repo_config repository
