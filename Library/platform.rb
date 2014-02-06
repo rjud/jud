@@ -23,6 +23,10 @@ class Platform
   def self.create repository, name, composites
     repo_config = Jud::Config.instance.get_repo_config repository
     prefix = Pathname.new repo_config['dir']
+    config = Jud::Config.instance.config['platforms']
+    if config.include? name then
+      puts (Platform.red "Already existing platform #{name}")
+    end
     config = Jud::Config.instance.config['platforms'][name]
     config['repository'] = repository
     config['src'] = prefix.join("src").to_s
@@ -75,11 +79,11 @@ class Platform
     return tool
   end
   
-#  def load_tools
-#    @config['tools'].each_key do |name|
-#      load_tool name
-#    end
-#  end
+  def load_tools
+    @config['tools'].each_key do |name|
+      load_tool name
+    end
+  end
   
   # wd, safe, keep
   def self.execute cmd, options = {}

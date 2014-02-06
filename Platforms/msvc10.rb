@@ -7,8 +7,7 @@ class Msvc10 < Jud::Win32
     
     def create config
       Jud::Win32.create config
-      config['tools'] << 'cl10' << 'nmake'
-      Jud::Config.instance.config['tools']['cl10']['type'] = Cl10.name
+      config['tools'][Cl10.name] = Cl10.name
     end
     
     def configure_c_compiler

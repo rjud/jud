@@ -4,7 +4,7 @@ class SVN < SCMTool
   
   SVN.configure
   
-  def initialize options = {}
+  def initialize url, options = {}
     super(url)
   end
   

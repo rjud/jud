@@ -31,9 +31,9 @@ when 'download' then
   scm = nil
   subsubclasses(SCMTool).each do |klass|
     begin
-      if klass.guess url then
+      if klass.configured? and klass.guess url then
         puts Platform.green("#{url} looks like a Git repository")
-        scm = klass.new(klass.name, url)
+        scm = klass.new url
         status = scm.checkout home
       end
     rescue Platform::Error => e
@@ -45,10 +45,12 @@ when 'download' then
       puts (Platform.green "Can't guess the type of the repository #{url}")
       subsubclasses(SCMTool).each do |klass|
         begin
-          puts (Platform.green "Try to download with #{klass.name}")
-          scm = klass.new(klass.name, url)
-          status = scm.checkout home, :safe => true
-          throw :download_ok if status[0].success?
+          if klass.configured? then
+            puts (Platform.green "Try to download with #{klass.name}")
+            scm = klass.new url
+            status = scm.checkout home, :safe => true
+            throw :download_ok if status[0].success?
+          end
         rescue Platform::Error => e
           puts (Platform.red e)
         end
@@ -94,6 +96,7 @@ begin
   $platform_config = Jud::Config.instance.config['platforms'][platform]
   
   $platform = Platform.new platform
+  $platform.load_tools
   
   $:.unshift $home.join('Applications').to_s
   

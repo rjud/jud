@@ -22,23 +22,34 @@ class Redmine < RepositoryTool
     if config.key? 'username' and not config['username'].empty?
       @username = config['username']
       @password = config['password']
+      @proxy_host = config['proxy_host']
+      @proxy_port = config['proxy_port']
     else
       config['username'] = ''
       config['password'] = ''
+      config['proxy_host'] = ''
+      config['proxy_port'] = ''
       raise Error, "Please, edit #{Jud::Config.instance.filename.to_s} to set username and password for redmine server #{@url}."
     end
     
   end
   
   def login
-        
-    agent = Mechanize.new
     
-    agent.get(URI.join(@url, '/login')) do |login_page|
-      login_page.form_with(:action => '/login') do |login_form|
-        login_form.username = @username
-        login_form.password = @password
-      end.submit
+    agent = Mechanize.new
+    agent.set_proxy @proxy_host, @proxy_port if @proxy_host.length > 0
+    
+    begin
+      agent.get(URI.join(@url, '/login')) do |login_page|
+        login_page.form_with(:action => '/login') do |login_form|
+          login_form.username = @username
+          login_form.password = @password
+        end.submit
+      end
+    rescue Mechanize::ResponseCodeError => e
+      puts (Platform.red e)
+      puts (Platform.red "Check your connection or your configuration file #{Jud::Config.instance.filename.to_s}")
+      abort
     end
     
     agent

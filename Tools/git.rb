@@ -8,8 +8,8 @@ class Git < SCMTool
   
   Git.configure
   
-  def initialize url, options={}, basename='git'
-    super(basename, url)
+  def initialize url, options={}
+    super(url)
   end
   
   def checkout src, options = {}

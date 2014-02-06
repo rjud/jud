@@ -1,4 +1,5 @@
 require 'c'
+require 'win32_utilities'
 
 class Cl < Jud::C::Compiler
   
@@ -15,31 +16,31 @@ class Cl < Jud::C::Compiler
       # Configure
       configure_directory config, 'VCInstallDir', lambda { get_vc_install_dir }
       configure_directory config, 'VSInstallDir', lambda { get_vs_install_dir }
-      configure_directory config, 'VCCommonToolsDir', lambda { get_vs_common_tools_dir }
+      configure_directory config, 'VSCommonToolsDir', lambda { get_vs_common_tools_dir }
       configure_directory config, 'WindowsSdkDir', lambda { get_windows_sdk_dir }
       # Get the final configuration
       @vc_install_dir = get_directory config, 'VCInstallDir'
       @vs_install_dir = get_directory config, 'VSInstallDir'
-      @vc_common_tools_dir = get_directory config, 'VCCommonToolsDir'
+      @vs_common_tools_dir = get_directory config, 'VSCommonToolsDir'
       @windows_sdk_dir = get_directory config, 'WindowsSdkDir'
       # Load environment
       # Microsoft Visual Studio
-      path = @vs_install_dir.join('Common7', 'IDE').to_s
+      path = File.join(@vs_install_dir, 'Common7', 'IDE')
       # Microsoft Visual Studio Common Tools
-      path << ';' << @vs_common_tools_dir.to_s
+      path << ';' << @vs_common_tools_dir
       # Microsoft Visual Compiler
-      path << ';' << @vc_install_dir.join('BIN').to_s
+      path << ';' << File.join(@vc_install_dir, 'BIN')
       # We may add VCPackages to path
-      ENV['INCLUDE'] = @vc_install_dir.join('INCLUDE').to_s
-      ENV['LIB'] = @vc_install_dir.join('LIB').to_s
-      ENV['LIBPATH'] = @vc_install_dir.join('LIB').to_s
+      ENV['INCLUDE'] = File.join(@vc_install_dir, 'INCLUDE')
+      ENV['LIB'] = File.join(@vc_install_dir, 'LIB')
+      ENV['LIBPATH'] = File.join(@vc_install_dir, 'LIB')
       # Microsoft SDK
-      path << ";" << @windows_sdk_dir.join('bin').to_s
-      ENV['INCLUDE'] += ";" << @windows_sdk_dir.join('include').to_s
-      ENV['LIB'] += ";" << @windows_sdk_dir.join('lib').to_s
+      path << ";" << File.join(@windows_sdk_dir, 'bin')
+      ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include')
+      ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib')
       # Set new environment
       ENV['PATH'] = path << ";" << ENV['PATH']
-    end  
+    end
     
     def get_vs_install_dir
       return Pathname.new reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VS7', version)

@@ -40,6 +40,16 @@ class Tool
     
     def extra_configure config; end
     
+    def configured?
+      if load_path and @path
+        return File.executable? @path
+      elsif load_path then
+        return false
+      else
+        return true
+      end
+    end
+    
     def configure_property config, name, func
       if config[name].nil? or config[name].empty? then
         config[name] = func.call
@@ -62,7 +72,7 @@ class Tool
     def get_directory config, name
       value = get_property config, name
       if value then
-        return Pathname.new value
+        return value
       else
         return nil
       end

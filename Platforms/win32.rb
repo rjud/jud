@@ -7,7 +7,7 @@ module Jud
       
       def create config
         config['CMake Generator'] = 'NMake Makefiles'
-        config['Native Build Tool'] = 'nmake'
+        config['Native Build Tool'] = 'NMake'
       end
       
     end
