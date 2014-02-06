@@ -40,10 +40,11 @@ class Redmine < RepositoryTool
     agent.set_proxy @proxy_host, @proxy_port if @proxy_host.length > 0
     
     begin
-      agent.get(URI.join(@url, '/login')) do |login_page|
-        login_page.form_with(:action => '/login') do |login_form|
-          login_form.username = @username
-          login_form.password = @password
+      uri = URI.parse File.join(@url, '/login') # URI.join doesn't work
+      agent.get uri do |page|
+        page.form_with(:action => uri.path) do |form|
+          form.username = @username
+          form.password = @password
         end.submit
       end
     rescue Mechanize::ResponseCodeError => e
@@ -61,7 +62,8 @@ class Redmine < RepositoryTool
   end
   
   def version_id version
-    agent.get URI.join(@url, @versions_page_path) do |page|
+    uri = URI.parse File.join(@url, @versions_page_path)
+    agent.get uri do |page|
       page.links_with(:text => version).each do |link|
         return $1 if link.uri.to_s =~ /\/versions\/(\d+)/
       end
@@ -70,30 +72,35 @@ class Redmine < RepositoryTool
   end
   
   def version! version
-    uri = URI.join(@url, @versions_page_path + '/new')    
-    agent.get uri do |page|
-      puts Platform.blue("Create version #{version} at #{uri.to_s}")
-      page.form_with(:action => @versions_page_path) do |form|
+    uri1 = URI.parse File.join(@url, @versions_page_path)
+    uri2 = URI.parse File.join(@url, @versions_page_path, '/new')    
+    agent.get uri2 do |page|
+      puts Platform.blue("Create version #{version} at #{uri1.to_s}")
+      page.form_with(:action => uri1.path) do |form|
         form.set_fields 'version[name]' => version
       end.submit
     end
   end
   
   def exist? filename
-    agent.get URI.join(@url, @files_page_path) do |page|
-      file_link = page.link_with(:text => filename.basename.to_s)
-      return (not file_link.nil?)
+    uri = URI.parse File.join(@url, @files_page_path)
+    puts Platform.blue("Check existence of #{filename} at #{uri}")
+    agent.get uri do |page|
+      link = page.link_with(:text => filename.basename.to_s)
+      return (not link.nil?)
     end
     return false
   end
   
   def download filename
+    uri1 = URI.parse File.join(@url, @files_page_path)
     agent.pluggable_parser.default = Mechanize::Download
-    agent.get URI.join(@url, @files_page_path) do |page|
-      file_link = page.link_with(:text => filename.basename.to_s)
-      if file_link
-        file_id = file_link.href.match(/download\/(\d+)/)[1].to_i
-        agent.get(URI.join(@url, "/attachments/#{file_id}")).save(filename.to_s)
+    agent.get uri1 do |page|
+      link = page.link_with(:text => filename.basename.to_s)
+      if link
+        id = link.href.match(/download\/(\d+)/)[1].to_i
+        uri2 = URI.parse File.join(@url, "/attachments/#{id}")
+        agent.get(uri2).save(filename.to_s)
         puts Platform.blue('Download ' + filename.to_s)
       else
         puts Platform.red('No link to download ' + filename.basename.to_s)
