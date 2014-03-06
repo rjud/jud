@@ -30,7 +30,7 @@ class Configuration
   def build
     self.apps.each do |app|
       puts Platform.yellow("Build application " + app.name)
-      app.new.install self.class.apps[app.name.to_sym][:options]
+      app.new.install self.class.apps[app.name.to_sym][:version], self.class.apps[app.name.to_sym][:options]
     end
   end
   

@@ -64,9 +64,14 @@ class Application
     end
   end
   
-  def checkout_this build_type
+  def checkout_this build_type, version
     src = srcdir build_type
-    self.class.scm_tool.checkout src if not File.directory? src
+    if not self.class.alternate_scm_tool.nil? then
+      self.class.scm_tool.checkout src, version, {:safe => true} if not File.directory? src
+      self.class.alternate_scm_tool.checkout src, version if not File.directory? src
+    else
+      self.class.scm_tool.checkout src, version if not File.directory? src
+    end
   end
   
   def configure_this build_type, options={}
@@ -91,10 +96,10 @@ class Application
     @config['prefix'] = @install.to_s
   end
   
-  def install options={}
+  def install version, options={}
     install_dependencies options
     build_types.each do |bt|
-      checkout_this bt
+      checkout_this bt, version
       configure_this bt, options
       build_this bt
       install_this bt
@@ -169,7 +174,7 @@ class Application
     
   class << self
     
-    attr_reader :scm_tool, :languages, :build_tool, :submit_tool, :repository
+    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository
     
     def pack_tool
       zip
@@ -221,6 +226,11 @@ class Application
       @submit_tool.instance_eval &block if block_given? &block
     end
     
+    def cvs url, modulename
+      require 'cvs'
+      @scm_tool = CVS.new url, modulename
+    end
+    
     def git url
       require 'git'
       @scm_tool = Git.new url
@@ -234,6 +244,11 @@ class Application
     def svn url
       require 'svn'
       @scm_tool = SVN.new url
+    end
+    
+    def wget url, packtool
+      require 'wget'
+      @alternate_scm_tool = Wget.new url, packtool
     end
     
     def zip

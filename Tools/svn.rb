@@ -8,10 +8,15 @@ class SVN < SCMTool
     super(url)
   end
   
-  def checkout src, options = {}
+  def checkout src, version, options = {}
+    if version.nil? then
+      url = @url + '/trunk'
+    else
+      url = @url + '/branches/' + version
+    end
     cmd = '"' + path + '"'
     cmd += ' checkout'
-    cmd += ' ' + @url + '/trunk'
+    cmd += ' ' + url
     cmd += ' ' + src.basename.to_s
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
   end
