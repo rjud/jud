@@ -24,7 +24,7 @@ class BuildTool < Tool
       end
     end
     options.each do |id, enabled|
-      abort 'Unknown option ' + sym.to_s if not @options.key? id
+      abort 'Unknown option ' + id.to_s if not @options.key? id
       ret <<  ResolvedOption.new(id.to_s, @options[id].type, enabled, enabled)
     end
     ret
