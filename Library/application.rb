@@ -44,7 +44,7 @@ class Application
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
       build_types.each do |bt|
-        depend.checkout_this bt
+        depend.checkout_this bt, nil
         depend.configure_this bt
         depend.build_this bt
         depend.install_this bt

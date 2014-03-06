@@ -48,7 +48,7 @@ when 'download' then
           if klass.configured? then
             puts (Platform.green "Try to download with #{klass.name}")
             scm = klass.new url
-            status = scm.checkout home, :safe => true
+            status = scm.checkout home, nil, :safe => true
             throw :download_ok if status[0].success?
           end
         rescue Platform::Error => e
@@ -155,12 +155,19 @@ begin
     claz.build_tool.options.each do | key, option |
       puts key, "\t" + (option[1].nil? ? 'No description' : option[1])
     end
-  when 'option'
+  when 'optionset'
     ARGV.shift
     h = Jud::Config.instance.config
     paths = ARGV.shift.split('.')
     paths[0..-2].each { |p| h = h[p] }
     h[paths.last] = ARGV.shift
+  when 'optionadd'
+    ARGV.shift
+    h = Jud::Config.instance.config
+    paths = ARGV.shift.split('.')
+    paths[0..-2].each { |p| h = h[p] }
+    h[paths.last] = [] if not h.include? paths.last
+    h[paths.last] << ARGV.shift
   when 'build'
     ARGV.shift
     conf = Object.const_get(ARGV.shift).new

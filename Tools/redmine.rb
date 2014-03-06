@@ -22,13 +22,15 @@ class Redmine < RepositoryTool
     if config.key? 'username' and not config['username'].empty?
       @username = config['username']
       @password = config['password']
-      @proxy_host = config['proxy_host']
-      @proxy_port = config['proxy_port']
+      #@proxy_host = config['proxy_host']
+      #@proxy_port = config['proxy_port']
+      @proxy_host = ''
+      @proxy_port = ''
     else
       config['username'] = ''
       config['password'] = ''
-      config['proxy_host'] = ''
-      config['proxy_port'] = ''
+      #config['proxy_host'] = ''
+      #config['proxy_port'] = ''
       raise Error, "Please, edit #{Jud::Config.instance.filename.to_s} to set username and password for redmine server #{@url}."
     end
     

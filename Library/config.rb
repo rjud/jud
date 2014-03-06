@@ -35,6 +35,12 @@ module Jud
         end
       end
       iterate_on_hash.call @config
+      # Create some entries
+      if not @config.include? 'main' then
+        @config['main']['proxy']['host'] = ''
+        @config['main']['proxy']['port'] = ''
+        @config['main']['proxy']['exceptions'] = []
+      end
     end
     
     def get_repo_config repository
