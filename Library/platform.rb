@@ -69,11 +69,11 @@ class Platform
   end
   
   def load_tool name
-    load $juddir.join('Tools', name + '.rb').to_s
+    load $juddir.join('Tools', name.downcase + '.rb').to_s
   end
   
   def get_tool name
-    load $juddir.join('Tools', name + '.rb').to_s
+    load $juddir.join('Tools', name.downcase + '.rb').to_s
     tool = Object.const_get(name).new(name)
     #config = Jud::Config.instance.config['tools']
     return tool
@@ -127,5 +127,12 @@ class Platform
       raise Error, "Can't find executable #{exe}"
     end
   end
+  
+  def self.is_darwin?; RUBY_PLATFORM =~ /darwin/; end
+  def self.is_windows?; RUBY_PLATFORM =~ /mswin|mingw/; end
+  def self.is_linux?; RUBY_PLATFORM =~ /linux/; end
+  
+  def self.is_32?; RUBY_PLATFORM =~ /i386/; end
+  def self.is_64?; RUBY_PLATFORM =~ /x86_64/; end
   
 end

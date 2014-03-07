@@ -4,12 +4,13 @@ class Make < BuildTool
   
   Make.configure
   
-  def initialize
+  def initialize options = {}
     super()
   end
   
   def build build
     cmd = '"' + path + '"'
+    cmd += ' -j3' if Platform.is_linux?
     Platform.execute cmd, wd: build
   end
   

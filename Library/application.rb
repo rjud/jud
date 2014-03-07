@@ -2,6 +2,8 @@ require 'config'
 
 class Application
   
+  class Error < RuntimeError; end
+  
   attr_reader :name, :packdir
   
   def initialize
