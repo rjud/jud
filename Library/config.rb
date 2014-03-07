@@ -1,6 +1,6 @@
 require 'pathname'
 require 'singleton'
-require 'YAML'
+require 'yaml'
 
 module Jud
   class Config

@@ -27,6 +27,9 @@ class CMake < BuildTool
     end
     cmd += ' -DCMAKE_INSTALL_PREFIX=' + install.to_s
     cmd += ' -DCMAKE_BUILD_TYPE=' + build_type.to_s
+    if Platform.is_linux? and Platform.is_64? then
+      cmd += ' -DCMAKE_CXX_FLAGS=-fPIC'
+    end
     resolve_options(options).each do |opt|
       cmd += ' -D' + opt.name + '=' + (option_to_s opt)
     end

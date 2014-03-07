@@ -1,5 +1,5 @@
 require 'set'
-require 'Tool'
+require 'tool'
 
 class SCMTool < Tool
     
