@@ -43,6 +43,7 @@ class Application
       depend.unpack
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
+      depend.install_dependencies
       build_types.each do |bt|
         depend.checkout_this bt, nil
         depend.configure_this bt
