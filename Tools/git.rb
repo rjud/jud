@@ -12,7 +12,7 @@ class Git < SCMTool
     super(url)
   end
   
-  def checkout src, options = {}
+  def checkout src, version, options = {}
     cmd = '"' + path + '"'
     cmd += " clone #{@url} #{src.basename.to_s}"
     Platform.execute cmd, {:wd => src.dirname}.merge(options)

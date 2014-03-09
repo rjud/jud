@@ -34,7 +34,7 @@ when 'download' then
       if klass.configured? and klass.guess url then
         puts Platform.green("#{url} looks like a Git repository")
         scm = klass.new url
-        status = scm.checkout home
+        status = scm.checkout home, nil
       end
     rescue Platform::Error => e
       puts (Platform.red e)
