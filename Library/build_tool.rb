@@ -17,17 +17,20 @@ class BuildTool < Tool
   end
   
   def resolve_options options
-    ret = []
+    ret = {}
+    # Eval the default options of the application
     @options.each do |id, opt|
-      if opt.default and (opt.cond.nil? or options.key? opt.cond) then
-        ret << ResolvedOption.new(id.to_s, opt.type, true, opt.default.call)
+      if not opt.default.nil? and (opt.cond.nil? or options.key? opt.cond or ( ret.key? opt.cond and ret[opt.cond].value) ) then
+        ret[id] = ResolvedOption.new(id.to_s, opt.type, true, opt.default.call)
       end
     end
+    # Merge them with the given options
     options.each do |id, enabled|
       abort 'Unknown option ' + id.to_s if not @options.key? id
-      ret <<  ResolvedOption.new(id.to_s, @options[id].type, enabled, enabled)
+      ret[id] = ResolvedOption.new(id.to_s, @options[id].type, enabled, enabled)
     end
-    ret
+    # Return the resolved options
+    ret.values
   end
   
 end
