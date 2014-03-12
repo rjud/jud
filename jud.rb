@@ -168,6 +168,11 @@ begin
     paths[0..-2].each { |p| h = h[p] }
     h[paths.last] = [] if not h.include? paths.last
     h[paths.last] << ARGV.shift
+  when 'configurations'
+    puts 'Available configurations'
+    subsubclasses(Configuration).each do |c|
+      puts "  #{c}"
+    end
   when 'build'
     ARGV.shift
     conf = Object.const_get(ARGV.shift).new
