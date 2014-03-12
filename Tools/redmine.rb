@@ -165,7 +165,6 @@ class Redmine < RepositoryTool
     puts(Platform.blue "Delete #{filename.to_s} from #{uri.to_s}")
     
     agent.get uri do |page|
-      link = page.link_with(:href => "/attachments/#{id}")
       uri2 = URI.parse File.join(@url, 'attachments', id)
       agent.post(uri2, {'_method' => 'delete', 'authenticity_token' => page.at('meta[@name="csrf-token"]')[:content]})
     end
