@@ -176,7 +176,11 @@ begin
   when 'build'
     ARGV.shift
     conf = Object.const_get(ARGV.shift).new
-    conf.build
+    if ARGV.length > 0 then
+      conf.build ARGV.shift
+    else
+      conf.build
+    end
   when 'submit'
     ARGV.shift
     conf = Object.const_get(ARGV.shift).new
