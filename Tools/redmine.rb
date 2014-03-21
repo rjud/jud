@@ -84,12 +84,29 @@ class Redmine < RepositoryTool
     end
   end
   
+  def file_id filename
+    begin
+      uri = URI.parse File.join(@url, @files_page_path)
+      agent.get uri do |page|
+        link = page.link_with(:text => filename.basename.to_s)
+        return $1 if link.uri.to_s =~ /\/attachments\/download\/(\d+)\//
+      end
+    rescue Mechanize::ResponseCodeError => e
+      return nil
+    end
+    return nil
+  end
+  
   def exist? filename
     uri = URI.parse File.join(@url, @files_page_path)
     puts Platform.blue("Check existence of #{filename} at #{uri}")
-    agent.get uri do |page|
-      link = page.link_with(:text => filename.basename.to_s)
-      return (not link.nil?)
+    begin
+      agent.get uri do |page|
+        link = page.link_with(:text => filename.basename.to_s)
+        return (not link.nil?)
+      end
+    rescue Mechanize::ResponseCodeError => e
+      puts e
     end
     return false
   end
@@ -122,16 +139,34 @@ class Redmine < RepositoryTool
       versionid = version_id version
     end
     
-    uri = URI.join(@url, @files_page_path + '/new')
+    uri = URI.parse File.join(@url, @files_page_path, 'new')
+    
+    puts Platform.blue("Upload #{filename.to_s} to #{uri.to_s}")    
+    begin
+      agent.get uri do |page|
+        page.form_with(:action => @files_page_path) do |form|
+          if versionid then
+            form.set_fields :version_id => versionid
+          end
+          form.file_uploads.first.file_name = filename.to_s
+        end.submit
+      end
+    rescue Mechanize::ResponseCodeError => e
+      puts e
+    end
+    
+  end
+  
+  def delete filename
+    
+    id = file_id filename
+    uri = URI.parse File.join(@url, @files_page_path)
+    
+    puts(Platform.blue "Delete #{filename.to_s} from #{uri.to_s}")
     
     agent.get uri do |page|
-      puts Platform.blue("Upload #{filename.to_s} to #{uri.to_s}")
-      page.form_with(:action => @files_page_path) do |form|
-        if versionid then
-          form.set_fields :version_id => versionid
-        end
-        form.file_uploads.first.file_name = filename.to_s
-      end.submit
+      uri2 = URI.parse File.join(@url, 'attachments', id)
+      agent.post(uri2, {'_method' => 'delete', 'authenticity_token' => page.at('meta[@name="csrf-token"]')[:content]})
     end
     
   end

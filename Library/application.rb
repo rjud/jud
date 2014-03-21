@@ -164,6 +164,7 @@ class Application
   end
   
   def upload
+    self.class.repository.delete packfile if self.class.repository.exist? packfile
     self.class.repository.upload packfile
   end
   

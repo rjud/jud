@@ -34,7 +34,7 @@ when 'download' then
       if klass.configured? and klass.guess url then
         puts Platform.green("#{url} looks like a Git repository")
         scm = klass.new url
-        status = scm.checkout home
+        status = scm.checkout home, nil
       end
     rescue Platform::Error => e
       puts (Platform.red e)
@@ -168,10 +168,19 @@ begin
     paths[0..-2].each { |p| h = h[p] }
     h[paths.last] = [] if not h.include? paths.last
     h[paths.last] << ARGV.shift
+  when 'configurations'
+    puts 'Available configurations'
+    subsubclasses(Configuration).each do |c|
+      puts "  #{c}"
+    end
   when 'build'
     ARGV.shift
     conf = Object.const_get(ARGV.shift).new
-    conf.build
+    if ARGV.length > 0 then
+      conf.build ARGV.shift
+    else
+      conf.build
+    end
   when 'submit'
     ARGV.shift
     conf = Object.const_get(ARGV.shift).new

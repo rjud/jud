@@ -27,11 +27,20 @@ class Configuration
     @apps
   end
   
-  def build
-    self.apps.each do |app|
-      puts Platform.yellow("Build application " + app.name)
-      app.new.install self.class.apps[app.name.to_sym][:version], self.class.apps[app.name.to_sym][:options]
+  def build app = nil
+    if app.nil? then
+      self.apps.each do |a|
+        build_one a
+      end
+    else
+      a = Object.const_get app
+      build_one a
     end
+  end
+  
+  def build_one app
+    puts Platform.yellow("Build application " + app.name)
+    app.new.install self.class.apps[app.name.to_sym][:version], self.class.apps[app.name.to_sym][:options]    
   end
   
   def submit
