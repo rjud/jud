@@ -19,8 +19,7 @@ class Git < SCMTool
   end
   
   def update src
-    cmd = '"' + path + '"'
-    #cmd += ' fetch'
+    cmd = "\"#{path}\" pull"
     Platform.execute cmd, wd: src
   end
   
