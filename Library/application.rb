@@ -36,6 +36,12 @@ class Application
     prefix
   end
   
+  def update
+    build_types.each do |bt|
+      update_this bt
+    end
+  end
+  
   def install_dependency claz
     depend = claz.new
     if depend.packfile.exist? then
@@ -74,6 +80,15 @@ class Application
       self.class.alternate_scm_tool.checkout src, version if not File.directory? src
     else
       self.class.scm_tool.checkout src, version if not File.directory? src
+    end
+  end
+  
+  def update_this build_type
+    src = srcdir build_type
+    if File.directory? src then
+      self.class.scm_tool.update src
+    else
+      checkout_this build_type, nil
     end
   end
   

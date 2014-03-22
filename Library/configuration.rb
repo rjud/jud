@@ -27,6 +27,12 @@ class Configuration
     @apps
   end
   
+  def update
+    self.apps.each do |a|
+      a.new.update
+    end
+  end
+  
   def build app = nil
     if app.nil? then
       self.apps.each do |a|
