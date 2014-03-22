@@ -98,6 +98,13 @@ begin
   $platform = Platform.new platform
   $platform.load_tools
   
+  repository = $platform_config['repository']
+  $repository_config = $general_config['repositories'][repository]
+  
+  scm = $repository_config['scm']
+  url = $repository_config['url']
+  scm = Object.const_get(scm).new url
+  
   $:.unshift $home.join('Applications').to_s
   
   require 'application'
@@ -192,6 +199,10 @@ begin
   when 'update'
     ARGV.shift
     scm.update $home
+    if ARGV.length > 0 then
+      conf = Object.const_get(ARGV.shift).new
+      conf.update
+    end
   end
   
 rescue Platform::Error, Tool::Error => e

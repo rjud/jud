@@ -17,16 +17,24 @@ class CTest < SubmitTool
   def submit srcdir, builddir, prefix, build_type, options={}
     # Generate the CTest scripting file
     dirname = Pathname.new(__FILE__).realpath.dirname
-    template_file = File.open((dirname.join 'ctest.cmake.erb'), 'r').read
+    template_filename = dirname.join 'ctest.cmake.erb'
+    template_file = File.open(template_filename, 'r').read
     erb = ERB.new template_file, nil, '-'
     Dir.mkdir builddir if not File.directory? builddir
     script_filename = Pathname.new(builddir).join "ctest-#{build_type}.cmake"
     File.open script_filename, 'w+' do |file|
-      file.write (erb.result binding)
+      begin
+        text = erb.result binding
+      rescue => e
+        msg = "While binding to #{template_filename}, can't generate #{script_filename}:\n #{e}"
+        raise Error, msg
+      else
+        file.write text
+      end
     end
     # Call CTest
     cmd = '"' + path + '" -V -S ' + script_filename.to_s
-    exit_status = $platform.execute cmd, safe: true, keep: '!!!!'
+    exit_status = Platform.execute cmd, safe: true, keep: '!!!!'
     if exit_status[0].success? then
       SubmitTool::OK
     elsif exit_status[1].match(/Configuration failed/) then

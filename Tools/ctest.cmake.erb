@@ -1,12 +1,17 @@
 set(CTEST_SOURCE_DIRECTORY "<%= srcdir %>")
 set(CTEST_BINARY_DIRECTORY "<%= builddir %>")
 
-set(CTEST_CMAKE_COMMAND "<%= @build_tool.path.gsub('\\', '/') %>")
-set(CTEST_CMAKE_GENERATOR "<%= $platform.cmake_generator %>")
+set(CTEST_BUILD_NAME "<%= $platform.name %>")
+set(CTEST_SITE "<%= Socket.gethostname %>")
 
+set(CTEST_CMAKE_COMMAND "<%= @build_tool.path.gsub('\\', '/') %>")
+set(CTEST_CMAKE_GENERATOR "<%= $platform_config['CMake Generator'] %>")
+
+<% if false %><%# memcheck_tool is not defined %>
 <% if $platform.memcheck_tool -%>
 set(CTEST_MEMORYCHECK_COMMAND "<%= $platform.memcheck_tool.path.gsub('\\', '/') %>")
 <% end -%>
+<% end %>
 
 set(CTEST_UPDATE_COMMAND "<%= @scm_tool.path.gsub('\\', '/') %>")
 
@@ -26,24 +31,26 @@ ctest_update()
 
 ctest_configure(RETURN_VALUE res)
 if(NOT res EQUAL 0)
-  #ctest_submit()
+  ctest_submit()
   message(FATAL_ERROR "!!!! Configuration failed !!!!")
 endif()
 
 ctest_build(RETURN_VALUE res)
 if(NOT res EQUAL 0)
-  #ctest_submit()
+  ctest_submit()
   message(FATAL_ERROR "!!!! Build failed !!!!")
 endif()
 
 ctest_test(RETURN_VALUE res)
 if(NOT res EQUAL 0)
-  #ctest_submit()
+  ctest_submit()
   message(FATAL_ERROR "!!!! Some tests failed !!!!")
 endif()
 
+<% if false %><%# memcheck_tool is not defined %>
 <% if $platform.memcheck_tool and build_type == :Debug -%>
 ctest_memcheck()
 <% end -%>
+<% end %>
 
-#ctest_submit()
+ctest_submit()

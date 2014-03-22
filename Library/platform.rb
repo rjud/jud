@@ -46,7 +46,10 @@ class Platform
     end
   end
   
+  attr_reader :name
+  
   def initialize name
+    @name = name
     @config = Jud::Config.instance.get_platform_config name
     @repo_config = Jud::Config.instance.get_repo_config @config['repository']
     $home = Pathname.new(@repo_config['home'])
@@ -54,6 +57,11 @@ class Platform
     $build = Pathname.new(@config['build'])
     $install = Pathname.new(@config['install'])
     $packdir = Pathname.new(@config['packages'])
+  end
+  
+  def cmake_native_build_tool
+    tool = @config['Native Build Tool']
+    Object.const_get(tool).new(tool)
   end
   
   def get_compiler language
