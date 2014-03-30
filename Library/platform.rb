@@ -34,24 +34,15 @@ class Platform
     config['install'] = prefix.join("install-#{name}").to_s
     config['packages'] = prefix.join("packages").to_s
     config['composites'] = []
-    composites.each do |composite|
-      begin
-        load $juddir.join("Platforms", "#{composite}.rb")
-        klass = Object.const_get(composite.capitalize)
-        klass.create config
-        config['composites'] << klass.name
-      rescue LoadError
-        raise Error, "Can't load platform #{composite}"
-      end
-    end
   end
   
-  attr_reader :name
+  attr_reader :name, :language_to_composite
   
   def initialize name
     @name = name
     @config = Jud::Config.instance.get_platform_config name
     @repo_config = Jud::Config.instance.get_repo_config @config['repository']
+    @language_to_composite = {}
     $home = Pathname.new(@repo_config['home'])
     $src = Pathname.new(@config['src'])
     $build = Pathname.new(@config['build'])
@@ -59,22 +50,63 @@ class Platform
     $packdir = Pathname.new(@config['packages'])
   end
   
+  def setup composite
+    begin
+      load $juddir.join("Platforms", "#{composite}.rb")
+      klass = Object.const_get(composite.capitalize)
+      klass.create @config
+      @config['composites'] << klass.name
+    rescue LoadError
+      raise Error, "Can't load platform #{composite}"
+    end
+  end
+  
+  def load_composites
+    @config['composites'].each do |composite|
+      load_composite composite
+    end
+  end
+  
+  def load_composite name
+    begin
+      load $juddir.join("Platforms", "#{name.downcase}.rb")
+      composite = Object.const_get(name).new name
+      composite.class.languages.each do |language|
+        if language_to_composite.has_key? language then
+          raise Error, "There is already a platform for the language #{language.name}"
+        else
+          language_to_composite[language] = composite
+        end
+      end
+    rescue LoadError
+      raise Error, "Can't load platform #{composite}"
+    end
+  end
+  
+  def get_composite_for_language language
+    if language_to_composite.has_key? language then
+      language_to_composite[language]
+    else
+      raise Error, "Can't find a platform for the language #{language.name}"
+    end
+  end
+  
   def cmake_native_build_tool
     tool = @config['Native Build Tool']
     Object.const_get(tool).new(tool)
   end
   
-  def get_compiler language
-    compiler_typenames = subsubclasses(language.class.compiler).collect{ |compiler| compiler.name }
-    config = @config['tools'].each_key do |name|
-      if compiler_typenames.include? name then
-        tool = Object.const_get(name).new(name)
-        puts (Platform.green "Found compiler #{tool.name} for language #{language.class.name}")
-        return tool
-      end
-    end
-    puts (Platform.red "Can't find compiler for language #{language.class.name}")
-  end
+  #def get_compiler language
+  #  compiler_typenames = subsubclasses(language.class.compiler).collect{ |compiler| compiler.name }
+  #  config = @config['tools'].each_key do |name|
+  #    if compiler_typenames.include? name then
+  #      tool = Object.const_get(name).new(name)
+  #      puts (Platform.green "Found compiler #{tool.name} for language #{language.class.name}")
+  #      return tool
+  #    end
+  #  end
+  #  puts (Platform.red "Can't find compiler for language #{language.class.name}")
+  #end
   
   def load_tool name
     load $juddir.join('Tools', name.downcase + '.rb').to_s
@@ -142,5 +174,31 @@ class Platform
   
   def self.is_32?; RUBY_PLATFORM =~ /i386/; end
   def self.is_64?; RUBY_PLATFORM =~ /x86_64/; end
+  
+  def build_name
+    
+    name = ''
+    
+    if Platform.is_windows? then
+      name = 'win32'
+    elsif Platform.is_linux? then
+      name = 'linux'
+    elsif Platform.is_darwin? then
+      name = 'macosx'
+    else
+      raise Error, "Unknown OS"
+    end
+    
+    if Platform.is_32? then
+      name += '-x86'
+    elsif Platform.is_64? then
+      name += '-x86_64'
+    else
+      raise Error, "Unknown bits"
+    end
+    
+    name
+    
+  end
   
 end

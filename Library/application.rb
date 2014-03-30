@@ -7,6 +7,7 @@ class Application
   attr_reader :name, :packdir
   
   def initialize
+    self.class.languages.uniq!
     @name = self.class.name
     @app_config = $platform_config['applications']
     @config = @app_config[@name] 
@@ -14,12 +15,30 @@ class Application
     @packdir = $packdir
   end
   
+  def build_name
+    case self.class.languages.size
+    when 0 then
+      return $platform.build_name
+    when 1 then
+      language = self.class.languages.first
+      composite = $platform.get_composite_for_language(language)
+      return composite.build_name
+    else
+      name = $platform.build_name
+      self.class.languages.each do |language|
+        composite = $platform.get_composite_for_language language
+        name += '-' + composite.short_build_name
+      end
+      return name
+    end
+  end
+  
   def srcdir build_type
-    $src.join(@name + (build_type ? '-' + build_type.to_s : '') )
+    $src.join @name
   end
   
   def builddir build_type
-    $build.join(@name + (build_type ? '-' + build_type.to_s : '') )
+    $build.join(@name + '-' + build_name + (build_type ? '-' + build_type.downcase.to_s : '') )
   end
   
   def prefix
@@ -29,7 +48,7 @@ class Application
       @app_config['separate_install_trees'] = config = true
     end
     if config then
-      prefix = $install.join(@name)
+      prefix = $install.join(@name + "-" + build_name)
     else
       prefix = $install
     end
@@ -151,8 +170,7 @@ class Application
   end
   
   def packfilename
-    platform = $general_config['default']
-    self.name + '-' + platform + '.' + self.class.pack_tool.ext
+    self.name + '-' + self.build_name + '.' + self.class.pack_tool.ext
   end
   
   def packfile
@@ -220,17 +238,18 @@ class Application
       @build_types << name
     end
     
-    def c &block
+    def c
       require 'c'
-      languages << Jud::C.new
+      languages << Jud::C
     end
     
     def cxx
-      languages << Cxx.new
+      require 'cxx'
+      languages << Jud::Cxx
     end
     
     def java
-      languages << Java.new
+      languages << Java
     end
     
     def cmake &block

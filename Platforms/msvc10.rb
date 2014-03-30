@@ -1,4 +1,5 @@
-require 'cl10'
+require 'c'
+require 'cxx'
 require 'win32'
 
 class Msvc10 < Jud::Win32
@@ -7,13 +8,22 @@ class Msvc10 < Jud::Win32
     
     def create config
       Jud::Win32.create config
+      require 'cl10'
       config['tools'][Cl10.name] = Cl10.name
     end
     
-    def configure_c_compiler
-      Cl10.new.configure
+    def languages
+      [Jud::C, Jud::Cxx]
     end
     
   end
+  
+  def initialize name
+    require 'cl10'
+    super(name)
+  end
+  
+  def build_name; "#{$platform.build_name}-#{short_build_name}"; end
+  def short_build_name; "msvc10"; end
   
 end

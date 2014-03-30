@@ -1,7 +1,7 @@
-require 'nmake'
+require 'composite'
 
 module Jud
-  class Win32 < Platform
+  class Win32 < Composite
     
     class << self
       
@@ -13,6 +13,10 @@ module Jud
     end
     
     def variant; Platform::WIN32; end
+    
+    def initialize name
+      require 'nmake'
+    end
     
   end
 end

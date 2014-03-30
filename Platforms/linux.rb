@@ -1,6 +1,7 @@
-require 'make'
+require 'c'
+require 'cxx'
 
-class Linux < Platform
+class Darwin < Composite
   
   class << self
     
@@ -9,8 +10,18 @@ class Linux < Platform
       config['Native Build Tool'] = 'Make'
     end
     
+    def languages
+      [Jud::C, Jud::Cxx]
+    end
+    
   end
   
-  def variant; Platform::UNIX; end
+  def initialize name
+    require 'make'
+    super(name)
+  end
+  
+  def build_name; "#{$platform.build_name}"; end
+  def short_build_name; ""; end
   
 end

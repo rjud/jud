@@ -2,7 +2,7 @@ require 'compiler'
 require 'language'
 
 module Jud
-  class C < Language;
+  class Cxx < Language;
     
     class Compiler < Jud::Compiler; end
     

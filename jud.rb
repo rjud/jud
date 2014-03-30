@@ -77,11 +77,7 @@ when 'create' then
   ARGV.shift
   repository = ARGV.shift
   name = ARGV.shift
-  composites = []
-  while ARGV.length > 0
-    composites << ARGV.shift
-  end
-  Platform.create repository, name, composites
+  Platform.create repository, name
   Jud::Config.instance.config['main']['default'] = name
   exit
 end
@@ -96,6 +92,7 @@ begin
   $platform_config = Jud::Config.instance.config['platforms'][platform]
   
   $platform = Platform.new platform
+  $platform.load_composites
   $platform.load_tools
   
   repository = $platform_config['repository']
@@ -129,6 +126,9 @@ begin
       ' [tag <app> <tag>]' +
       ' [tags <app>]' +
       "\n"
+  when 'enable'
+    ARGV.shift
+    $platform.setup ARGV.shift
   when 'branch'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
