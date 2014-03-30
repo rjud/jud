@@ -1,5 +1,6 @@
 require 'c'
 require 'cxx'
+require 'composite'
 
 class Darwin < Composite
   
