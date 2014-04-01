@@ -155,7 +155,7 @@ begin
       end
     end
     claz = Object.const_get(name)
-    claz.new.install nil, options
+    claz.new.install({ name.to_sym => { :options => options }})
   when 'options'
     ARGV.shift
     claz = Object.const_get(ARGV.shift)

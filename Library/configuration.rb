@@ -29,7 +29,7 @@ class Configuration
   
   def update
     self.apps.each do |a|
-      a.new.update
+      a.new.update self.class.apps
     end
   end
   
@@ -46,7 +46,7 @@ class Configuration
   
   def build_one app
     puts Platform.yellow("Build application " + app.name)
-    app.new.install self.class.apps[app.name.to_sym][:version], self.class.apps[app.name.to_sym][:options]    
+    app.new.install self.class.apps
   end
   
   def submit
@@ -54,10 +54,10 @@ class Configuration
       a = app.new
       if a.class.submit_tool then
         puts Platform.yellow("Build and test application " + app.name)      
-        a.submit self.class.apps[a.name.to_sym][:options]
+        a.submit self.class.apps
       else
-        puts Platform.red("Not tool to submit " + app.name + ", so only build it")
-        a.install self.class.apps[a.name.to_sym][:options]
+        puts Platform.red("Not tool to submit #{app.name}, so only build it")
+        a.install self.class.apps
       end
     end
   end

@@ -55,13 +55,13 @@ class Application
     prefix
   end
   
-  def update
+  def update options
     build_types.each do |bt|
-      update_this bt
+      update_this bt, options[self.class.name.to_sym]
     end
   end
   
-  def install_dependency claz
+  def install_dependency claz, options
     depend = claz.new
     if depend.packfile.exist? then
       depend.unpack
@@ -70,9 +70,9 @@ class Application
       depend.unpack
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
-      depend.install_dependencies
+      depend.install_dependencies options
       build_types.each do |bt|
-        depend.checkout_this bt, nil
+        depend.checkout_this bt, options[claz.name.to_sym]
         depend.configure_this bt
         depend.build_this bt
         depend.install_this bt
@@ -83,39 +83,42 @@ class Application
     depend.register_this
   end
   
-  def install_dependencies options={}
+  def install_dependencies options
     self.class.depends.each do |depend, cond|
-      install = cond.nil? || options[cond]
+      install = cond.nil? || (options[self.class.name.to_sym] && options[self.class.name.to_sym][:options][cond])
       config = @app_config[depend.name]
       install = (not config.has_key? 'prefix') if install
-      install_dependency depend if install
+      install_dependency depend, options if install
     end
   end
   
-  def checkout_this build_type, version
+  def checkout_this build_type, options
     src = srcdir build_type
-    if not self.class.alternate_scm_tool.nil? then
-      self.class.scm_tool.checkout src, version, {:safe => true} if not File.directory? src
-      self.class.alternate_scm_tool.checkout src, version if not File.directory? src
-    else
-      self.class.scm_tool.checkout src, version if not File.directory? src
+    if not File.directory? src then
+      version = options[:version]
+      if not self.class.alternate_scm_tool.nil? then
+        self.class.scm_tool.checkout src, version, {:safe => true}
+        self.class.alternate_scm_tool.checkout src, version
+      else
+        self.class.scm_tool.checkout src, version
+      end
     end
   end
   
-  def update_this build_type
+  def update_this build_type, options
     src = srcdir build_type
     if File.directory? src then
       self.class.scm_tool.update src
     else
-      checkout_this build_type, nil
+      checkout_this build_type, options
     end
   end
   
-  def configure_this build_type, options={}
+  def configure_this build_type, options
     if self.class.build_tool.nil? then return end
     src = srcdir build_type
     build = builddir build_type
-    self.class.build_tool.configure src, build, @install, build_type, options    
+    self.class.build_tool.configure src, build, @install, build_type, options[:options]
   end
   
   def build_types
@@ -136,11 +139,12 @@ class Application
     @config['prefix'] = @install.to_s
   end
   
-  def install version, options={}
+  def install options
     install_dependencies options
+    options[self.class.name] = {} if not options.has_key? self.class.name
     build_types.each do |bt|
-      checkout_this bt, version
-      configure_this bt, options
+      checkout_this bt, options[self.class.name.to_sym]
+      configure_this bt, options[self.class.name.to_sym]
       build_this bt
       install_this bt
     end
@@ -191,7 +195,7 @@ class Application
   end
   
   def unpack
-    puts Platform.blue('Unpack ' + packfile.basename.to_s + ' to ' + @install.to_s)
+    puts Platform.blue("Unpack #{packfile.basename.to_s} to #{@install.to_s}")
     self.class.pack_tool.unpack packfile, @install
   end
   
