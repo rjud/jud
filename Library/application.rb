@@ -123,10 +123,12 @@ class Application
   end
   
   def build_this build_type
+    if self.class.build_tool.nil? then return end
     self.class.build_tool.build (builddir build_type)
   end
   
   def install_this build_type
+    if self.class.build_tool.nil? then return end
     self.class.build_tool.install (builddir build_type)
   end
   
