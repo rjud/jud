@@ -14,7 +14,7 @@ class CTest < SubmitTool
     @native_build_tool = native_build_tool
   end
   
-  def submit srcdir, builddir, prefix, build_type, options={}
+  def submit srcdir, builddir, prefix, build_type, buildname, options={}
     # Generate the CTest scripting file
     dirname = Pathname.new(__FILE__).realpath.dirname
     template_filename = dirname.join 'ctest.cmake.erb'

@@ -1,7 +1,7 @@
 set(CTEST_SOURCE_DIRECTORY "<%= srcdir %>")
 set(CTEST_BINARY_DIRECTORY "<%= builddir %>")
 
-set(CTEST_BUILD_NAME "<%= $platform.name %>")
+set(CTEST_BUILD_NAME "<%= buildname %>")
 set(CTEST_SITE "<%= Socket.gethostname %>")
 
 set(CTEST_CMAKE_COMMAND "<%= @build_tool.path.gsub('\\', '/') %>")
