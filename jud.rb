@@ -126,21 +126,26 @@ begin
       ' [tag <app> <tag>]' +
       ' [tags <app>]' +
       "\n"
-  when 'enable'
-    ARGV.shift
-    $platform.setup ARGV.shift
   when 'branch'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
     app.scm_tool.branch app.src, ARGV.shift
-  when 'tag'
+  when 'build'
     ARGV.shift
-    app = Object.const_get(ARGV.shift).new
-    app.class.scm_tool.tag app.src, ARGV.shift
-  when 'tags'
+    conf = Object.const_get(ARGV.shift).new
+    if ARGV.length > 0 then
+      conf.build ARGV.shift
+    else
+      conf.build
+    end
+  when 'configurations'
+    puts 'Available configurations'
+    subsubclasses(Configuration).each do |c|
+      puts "  #{c}"
+    end
+  when 'enable'
     ARGV.shift
-    app = Object.const_get(ARGV.shift).new
-    app.class.scm_tool.tags app.src
+    $platform.setup ARGV.shift
   when 'install'
     ARGV.shift
     name = ARGV.shift
@@ -162,12 +167,6 @@ begin
     claz.build_tool.options.each do | key, option |
       puts key, "\t" + (option[1].nil? ? 'No description' : option[1])
     end
-  when 'optionset'
-    ARGV.shift
-    h = Jud::Config.instance.config
-    paths = ARGV.shift.split('.')
-    paths[0..-2].each { |p| h = h[p] }
-    h[paths.last] = ARGV.shift
   when 'optionadd'
     ARGV.shift
     h = Jud::Config.instance.config
@@ -175,27 +174,28 @@ begin
     paths[0..-2].each { |p| h = h[p] }
     h[paths.last] = [] if not h.include? paths.last
     h[paths.last] << ARGV.shift
-  when 'configurations'
-    puts 'Available configurations'
-    subsubclasses(Configuration).each do |c|
-      puts "  #{c}"
-    end
-  when 'build'
+  when 'optionset'
     ARGV.shift
-    conf = Object.const_get(ARGV.shift).new
-    if ARGV.length > 0 then
-      conf.build ARGV.shift
-    else
-      conf.build
-    end
-  when 'submit'
-    ARGV.shift
-    conf = Object.const_get(ARGV.shift).new
-    conf.submit
+    h = Jud::Config.instance.config
+    paths = ARGV.shift.split('.')
+    paths[0..-2].each { |p| h = h[p] }
+    h[paths.last] = ARGV.shift
   when 'pack'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
     app.pack
+  when 'submit'
+    ARGV.shift
+    conf = Object.const_get(ARGV.shift).new
+    conf.submit
+  when 'tag'
+    ARGV.shift
+    app = Object.const_get(ARGV.shift).new
+    app.class.scm_tool.tag app.src, ARGV.shift
+  when 'tags'
+    ARGV.shift
+    app = Object.const_get(ARGV.shift).new
+    app.class.scm_tool.tags app.src
   when 'update'
     ARGV.shift
     scm.update $home
