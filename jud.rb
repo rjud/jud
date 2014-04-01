@@ -155,7 +155,7 @@ begin
       end
     end
     claz = Object.const_get(name)
-    claz.new.install options
+    claz.new.install nil, options
   when 'options'
     ARGV.shift
     claz = Object.const_get(ARGV.shift)
