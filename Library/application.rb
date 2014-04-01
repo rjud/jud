@@ -112,6 +112,7 @@ class Application
   end
   
   def configure_this build_type, options={}
+    if self.class.build_tool.nil? then return end
     src = srcdir build_type
     build = builddir build_type
     self.class.build_tool.configure src, build, @install, build_type, options    
