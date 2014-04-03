@@ -109,8 +109,8 @@ begin
     load rb
   end
   
-  require 'configuration'
-  Dir.glob $home.join('Configurations', '*.rb').to_s do |rb|
+  require 'application'
+  Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
     load rb
   end
   
@@ -138,9 +138,9 @@ begin
     else
       $conf.build
     end
-  when 'configurations'
-    puts 'Available configurations'
-    subsubclasses(Configuration).each do |c|
+  when 'applications'
+    puts 'Available applications'
+    subsubclasses(Application).each do |c|
       puts "  #{c}"
     end
   when 'enable'

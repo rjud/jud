@@ -1,4 +1,4 @@
-class Configuration
+class Application
   
   def initialize
     @apps = []
