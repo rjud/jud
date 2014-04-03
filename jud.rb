@@ -102,10 +102,10 @@ begin
   url = $repository_config['url']
   scm = Object.const_get(scm).new url
   
-  $:.unshift $home.join('Applications').to_s
+  $:.unshift $home.join('Projects').to_s
   
-  require 'application'
-  Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
+  require 'project'
+  Dir.glob $home.join('Projects', '*.rb').to_s do |rb|
     load rb
   end
   

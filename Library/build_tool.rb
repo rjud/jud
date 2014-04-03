@@ -26,7 +26,7 @@ class BuildTool < Tool
   
   def resolve_options options
     ret = {}
-    # Eval the default options of the application
+    # Eval the default options of the project
     @options.each do |id, opt|
       if not opt.default.nil? and (opt.cond.nil? or options.key? opt.cond or ( ret.key? opt.cond and ret[opt.cond].value) ) then
         ret[id] = ResolvedOption.new(id.to_s, opt.type, true, opt.default.call)

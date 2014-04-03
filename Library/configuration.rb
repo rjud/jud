@@ -7,13 +7,13 @@ class Configuration
   def apps
     if @apps.empty? then
       deps = {}
-      # Compute the dependencies for each application
+      # Compute the dependencies for each project
       self.class.apps.each do |name, options|
         app = Object.const_get name
         @apps << app
         deps[app] = app.new.depends options[:options]
       end
-      # Determine the order to build the applications
+      # Determine the order to build the projects
       @apps.sort! do |app1, app2|
         if deps[app1].include? app2 then
           1
@@ -57,7 +57,7 @@ class Configuration
   end
   
   def build_one app
-    puts Platform.yellow("Build application " + app.name)
+    puts Platform.yellow("Build project " + app.name)
     project(app.name.to_sym).install
   end
   
@@ -65,7 +65,7 @@ class Configuration
     self.apps.each do |app|
       a = project(app.name.to_sym)
       if a.class.submit_tool then
-        puts Platform.yellow("Build and test application " + app.name)      
+        puts Platform.yellow("Build and test project " + app.name)      
         a.submit
       else
         puts Platform.red("Not tool to submit #{app.name}, so only build it")
@@ -80,11 +80,11 @@ class Configuration
       @apps ||= {}
     end
     
-    def app application, args={}, &block
-      apps[application.to_sym] = {:options => {}}
-      apps[application.to_sym].merge! args
+    def app project, args={}, &block
+      apps[project.to_sym] = {:options => {}}
+      apps[project.to_sym].merge! args
     end
-        
+    
   end
   
 end
