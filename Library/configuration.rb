@@ -27,9 +27,21 @@ class Configuration
     @apps
   end
   
+  def project sym
+    if self.class.apps.has_key? sym then
+      Object.const_get(sym.to_s).new self.class.apps[sym]
+    else
+      Object.const_get(sym.to_s).new {}
+    end
+  end
+  
+  def options sym
+    self.class.apps[sym]
+  end
+  
   def update
     self.apps.each do |a|
-      a.new.update self.class.apps
+      project(a.name.to_sym).update
     end
   end
   
@@ -46,18 +58,18 @@ class Configuration
   
   def build_one app
     puts Platform.yellow("Build application " + app.name)
-    app.new.install self.class.apps
+    project(app.name.to_sym).install
   end
   
   def submit
     self.apps.each do |app|
-      a = app.new
+      a = project(app.name.to_sym)
       if a.class.submit_tool then
         puts Platform.yellow("Build and test application " + app.name)      
-        a.submit self.class.apps
+        a.submit
       else
         puts Platform.red("Not tool to submit #{app.name}, so only build it")
-        a.install self.class.apps
+        a.install
       end
     end
   end
@@ -72,7 +84,7 @@ class Configuration
       apps[application.to_sym] = {:options => {}}
       apps[application.to_sym].merge! args
     end
-    
+        
   end
   
 end

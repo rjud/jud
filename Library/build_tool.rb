@@ -12,6 +12,14 @@ class BuildTool < Tool
     @options = {}
   end
   
+  def project sym
+    if $conf.nil? then
+      Object.const_get(sym.to_s).new
+    else
+      $conf.project sym
+    end
+  end
+  
   def option id, type, desc: '', default: nil, cond: nil
     @options[id] = Option.new(desc, type, default, cond)
   end

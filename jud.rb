@@ -132,11 +132,11 @@ begin
     app.scm_tool.branch app.src, ARGV.shift
   when 'build'
     ARGV.shift
-    conf = Object.const_get(ARGV.shift).new
+    $conf = Object.const_get(ARGV.shift).new
     if ARGV.length > 0 then
-      conf.build ARGV.shift
+      $conf.build ARGV.shift
     else
-      conf.build
+      $conf.build
     end
   when 'configurations'
     puts 'Available configurations'
@@ -186,8 +186,8 @@ begin
     app.pack
   when 'submit'
     ARGV.shift
-    conf = Object.const_get(ARGV.shift).new
-    conf.submit
+    $conf = Object.const_get(ARGV.shift).new
+    $conf.submit
   when 'tag'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
@@ -200,8 +200,8 @@ begin
     ARGV.shift
     scm.update $home
     if ARGV.length > 0 then
-      conf = Object.const_get(ARGV.shift).new
-      conf.update
+      $conf = Object.const_get(ARGV.shift).new
+      $conf.update
     end
   end
   
