@@ -225,10 +225,10 @@ class Project
     self.class.repository.upload packfile
   end
   
-  def depends options={}
+  def depends
     depends = []
     self.class.depends.each do |depend, cond|
-      depends << depend if cond.nil? or options[cond.to_sym]
+      depends << depend if cond.nil? or @options[:options][cond.to_sym]
     end
     depends
   end

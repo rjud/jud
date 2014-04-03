@@ -11,7 +11,7 @@ class Application
       self.class.apps.each do |name, options|
         app = Object.const_get name
         @apps << app
-        deps[app] = app.new.depends options[:options]
+        deps[app] = project(app.name.to_sym).depends
       end
       # Determine the order to build the projects
       @apps.sort! do |app1, app2|
