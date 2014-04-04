@@ -34,7 +34,7 @@ when 'download' then
       if klass.configured? and klass.guess url then
         puts Platform.green("#{url} looks like a Git repository")
         scm = klass.new url
-        status = scm.checkout home, nil
+        status = scm.checkout home
       end
     rescue Platform::Error => e
       puts (Platform.red e)
@@ -48,7 +48,7 @@ when 'download' then
           if klass.configured? then
             puts (Platform.green "Try to download with #{klass.name}")
             scm = klass.new url
-            status = scm.checkout home, nil, :safe => true
+            status = scm.checkout home, { :safe => true }
             throw :download_ok if status[0].success?
           end
         rescue Platform::Error => e
@@ -160,7 +160,7 @@ begin
       end
     end
     claz = Object.const_get(name)
-    claz.new.install({ name.to_sym => { :options => options }})
+    claz.new({ :options => options }).install
   when 'options'
     ARGV.shift
     claz = Object.const_get(ARGV.shift)
@@ -195,7 +195,7 @@ begin
   when 'tags'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
-    app.class.scm_tool.tags app.src
+    app.class.scm_tool.tags app.srcdir :Debug
   when 'update'
     ARGV.shift
     scm.update $home
@@ -203,6 +203,13 @@ begin
       $conf = Object.const_get(ARGV.shift).new
       $conf.update
     end
+  when 'upload'
+    ARGV.shift
+    name = ARGV.shift
+    options = {}
+    options[:version] = ARGV.shift if ARGV.length > 0
+    app = Object.const_get(name).new(options)
+    app.upload_this
   end
   
 rescue Platform::Error, Tool::Error => e

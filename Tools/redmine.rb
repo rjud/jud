@@ -128,23 +128,28 @@ class Redmine < RepositoryTool
     
   end
   
-  def upload filename
+  def upload filename, options={}
     
-    version = nil
+    version = if options.has_key? :version then options[:version] else nil end
     
     versionid = nil
-    if version then
-      versionid = version_id version
-      version! version if versionid.nil?
-      versionid = version_id version
+    begin
+      if version then
+        versionid = version_id version
+        version! version if versionid.nil?
+        versionid = version_id version
+      end
+    rescue Mechanize::ResponseCodeError => e
+      puts (Platform.red e)
     end
     
-    uri = URI.parse File.join(@url, @files_page_path, 'new')
+    action = File.join(@url, @files_page_path)
+    uri = URI.parse File.join(action, 'new')
     
     puts Platform.blue("Upload #{filename.to_s} to #{uri.to_s}")    
     begin
       agent.get uri do |page|
-        page.form_with(:action => @files_page_path) do |form|
+        page.form_with(:action => URI.parse(action).path) do |form|
           if versionid then
             form.set_fields :version_id => versionid
           end
@@ -152,7 +157,7 @@ class Redmine < RepositoryTool
         end.submit
       end
     rescue Mechanize::ResponseCodeError => e
-      puts e
+      puts (Platform.red e)
     end
     
   end
