@@ -16,6 +16,14 @@ class Project
     @packdir = $packdir
   end
   
+  def project sym
+    if $conf.nil? then
+      Object.const_get(sym.to_s).new
+    else
+      $conf.project sym
+    end
+  end
+  
   def build_name
     case self.class.languages.size
     when 0 then
