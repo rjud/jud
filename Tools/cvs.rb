@@ -15,7 +15,7 @@ class CVS < SCMTool
     @modulename = modulename
   end
   
-  def checkout src, version, options = {}
+  def checkout src, options = {}
     # Login
     cmd = '"' + path + '"'
     cmd += " -d#{@url} login -p \"\""

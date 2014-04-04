@@ -8,11 +8,11 @@ class SVN < SCMTool
     super(url)
   end
   
-  def checkout src, version, options = {}
-    if version.nil? then
-      url = @url + '/trunk'
+  def checkout src, options = {}
+    if options.has_key? :version then
+      url = @url + '/branches/' + options[:version]
     else
-      url = @url + '/branches/' + version
+      url = @url + '/trunk'
     end
     cmd = '"' + path + '"'
     cmd += ' checkout'

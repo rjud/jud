@@ -113,12 +113,11 @@ class Project
   def checkout_this build_type
     src = srcdir build_type
     if not File.directory? src then
-      version = @options[:version]
       if not self.class.alternate_scm_tool.nil? then
-        self.class.scm_tool.checkout src, version, {:safe => true}
-        self.class.alternate_scm_tool.checkout src, version
+        self.class.scm_tool.checkout src, @options.merge({:safe => true})
+        self.class.alternate_scm_tool.checkout src
       else
-        self.class.scm_tool.checkout src, version
+        self.class.scm_tool.checkout src, @options
       end
     end
   end
@@ -179,7 +178,7 @@ class Project
       build = builddir bt
       buildname = "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
-      self.class.scm_tool.checkout src if not File.directory? src
+      self.class.scm_tool.checkout src, @options if not File.directory? src
       s = self.class.submit_tool.submit src, build, @install, bt, buildname, @options[:options]
       status = s if s > status
     end
@@ -230,7 +229,7 @@ class Project
     if self.class.repository.exist? packfile then
       self.class.repository.delete packfile
     end
-    self.class.repository.upload packfile
+    self.class.repository.upload packfile, @options
   end
   
   def depends
