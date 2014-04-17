@@ -158,6 +158,7 @@ class Project
   
   def install
     install_dependencies
+    instance_eval &self.class.env if self.class.env
     build_types.each do |bt|
       checkout_this bt
       configure_this bt
@@ -242,7 +243,7 @@ class Project
     
   class << self
     
-    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository
+    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :env
     
     def pack_tool
       zip
@@ -269,6 +270,10 @@ class Project
       @build_types << name
     end
     
+    def setenv &block
+      @env = block if block_given?
+    end
+    
     def c
       require 'c'
       languages << Jud::C
@@ -286,13 +291,13 @@ class Project
     def cmake &block
       require 'cmake'
       @build_tool= CMake.new
-      @build_tool.instance_eval &block if block_given? &block
+      @build_tool.instance_eval &block if block_given?
     end
     
     def ctest &block
       require 'ctest'
       @submit_tool = CTest.new
-      @submit_tool.instance_eval &block if block_given? &block
+      @submit_tool.instance_eval &block if block_given?
     end
     
     def cvs url, modulename
