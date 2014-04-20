@@ -16,6 +16,11 @@ class Msvc10 < Jud::Win32
       [Jud::C, Jud::Cxx]
     end
     
+    def compiler
+      require 'cl10'
+      Cl10
+    end
+  
   end
   
   def initialize name

@@ -5,8 +5,8 @@ class Cl < Jud::C::Compiler
   
   class << self
     
-    attr_reader :vc_install_dir, :vs_install_dir
-    attr_reader :vc_common_tools_dir, :windows_sdk_dir
+    attr_reader :vc_install_dir, :vs_install_dir, :vc_common_tools_dir
+    attr_reader :framework_dir, :windows_sdk_dir
     
     def load_path; false; end
     
@@ -18,11 +18,13 @@ class Cl < Jud::C::Compiler
       configure_directory config, 'VSInstallDir', lambda { get_vs_install_dir }
       configure_directory config, 'VSCommonToolsDir', lambda { get_vs_common_tools_dir }
       configure_directory config, 'WindowsSdkDir', lambda { get_windows_sdk_dir }
+      configure_directory config, 'FrameworkDir', lambda { get_framework_dir }
       # Get the final configuration
       @vc_install_dir = get_directory config, 'VCInstallDir'
       @vs_install_dir = get_directory config, 'VSInstallDir'
       @vs_common_tools_dir = get_directory config, 'VSCommonToolsDir'
       @windows_sdk_dir = get_directory config, 'WindowsSdkDir'
+      @framework_dir = get_directory config, 'FrameworkDir'
       # Load environment
       # Microsoft Visual Studio
       path = File.join(@vs_install_dir, 'Common7', 'IDE')
@@ -38,6 +40,8 @@ class Cl < Jud::C::Compiler
       path << ";" << File.join(@windows_sdk_dir, 'bin')
       ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include')
       ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib')
+      # Framework .NET (to have msbuild)
+      path << ";" << @framework_dir
       # Set new environment
       ENV['PATH'] = path << ";" << ENV['PATH']
     end
