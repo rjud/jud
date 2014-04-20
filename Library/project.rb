@@ -4,12 +4,13 @@ class Project
   
   class Error < RuntimeError; end
   
-  attr_reader :name, :packdir
+  attr_reader :name, :packdir, :scm_tool
   
   def initialize options={}
     self.class.languages.uniq!
     @options = options
     @name = self.class.name
+    @scm_tool = self.class.scm_tool
     @app_config = $platform_config['projects']
     @config = @app_config[@name] 
     @install = prefix
@@ -114,10 +115,10 @@ class Project
     src = srcdir build_type
     if not File.directory? src then
       if not self.class.alternate_scm_tool.nil? then
-        self.class.scm_tool.checkout src, @options.merge({:safe => true})
+        @scm_tool.checkout src, @options.merge({:safe => true})
         self.class.alternate_scm_tool.checkout src
       else
-        self.class.scm_tool.checkout src, @options
+        @scm_tool.checkout src, @options
       end
     end
   end
@@ -125,7 +126,7 @@ class Project
   def update_this build_type
     src = srcdir build_type
     if File.directory? src then
-      self.class.scm_tool.update src
+      @scm_tool.update src
     else
       checkout_this build_type
     end
@@ -179,7 +180,7 @@ class Project
       build = builddir bt
       buildname = "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
-      self.class.scm_tool.checkout src, @options if not File.directory? src
+      @scm_tool.checkout src, @options if not File.directory? src
       s = self.class.submit_tool.submit src, build, @install, bt, buildname, @options[:options]
       status = s if s > status
     end
@@ -208,8 +209,12 @@ class Project
   end
   
   def pack_and_upload_this
-    pack_this
-    upload_this if self.class.repository
+    begin
+      pack_this
+      upload_this if self.class.repository
+    rescue SocketError => e
+      puts (Platform.red "Can't upload the file #{packfilename}:\n#{e}")
+    end
   end
   
   def pack_this
