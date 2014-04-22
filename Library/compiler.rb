@@ -1,4 +1,4 @@
-require 'Tool'
+require 'tool'
 
 module Jud
   class Compiler < Tool
