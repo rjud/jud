@@ -101,6 +101,13 @@ begin
   scm = $repository_config['scm']
   url = $repository_config['url']
   scm = Object.const_get(scm).new url
+
+  case ARGV.first
+  when 'enable'
+    ARGV.shift
+    $platform.setup ARGV.shift
+    exit
+  end
   
   $:.unshift $home.join('Projects').to_s
   
@@ -143,9 +150,6 @@ begin
     subsubclasses(Application).each do |c|
       puts "  #{c}"
     end
-  when 'enable'
-    ARGV.shift
-    $platform.setup ARGV.shift
   when 'install'
     ARGV.shift
     name = ARGV.shift
