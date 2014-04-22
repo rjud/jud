@@ -20,7 +20,7 @@ class Platform
   def self.cyan text; colorize text, "\033[36m"; end
   def self.gray text; colorize text, "\033[37m"; end
   
-  def self.create repository, name, composites
+  def self.create repository, name
     repo_config = Jud::Config.instance.get_repo_config repository
     prefix = Pathname.new repo_config['dir']
     config = Jud::Config.instance.config['platforms']
@@ -52,8 +52,8 @@ class Platform
   
   def setup composite
     begin
-      load $juddir.join("Platforms", "#{composite}.rb")
-      klass = Object.const_get(composite.capitalize)
+      load $juddir.join("Platforms", "#{composite.downcase}.rb")
+      klass = Object.const_get(composite)
       klass.create @config
       @config['composites'] << klass.name
     rescue LoadError
