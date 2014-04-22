@@ -5,7 +5,7 @@ class SVN < SCMTool
   SVN.configure
   
   def initialize url, options = {}
-    super(url)
+    super(url, options)
   end
   
   def resolve_url options={}
@@ -20,6 +20,7 @@ class SVN < SCMTool
     url = resolve_url options
     cmd = '"' + path + '"'
     cmd += ' checkout'
+    cmd += " #{@options[:args]}" if @options.has_key? :args
     cmd += ' ' + url
     cmd += ' ' + src.basename.to_s
     Platform.execute cmd, {:wd => src.dirname}.merge(options)

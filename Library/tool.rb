@@ -80,10 +80,11 @@ class Tool
     
   end
   
-  attr_reader :config
+  attr_reader :config, :options
   
-  def initialize
+  def initialize options={}
     @config = self.class.get_config
+    @options = options
   end
   
   def path

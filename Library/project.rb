@@ -326,9 +326,9 @@ class Project
       @repository = Redmine.new url, projectid
     end
     
-    def svn url
+    def svn url, options={}
       require 'svn'
-      @scm_tool = SVN.new url
+      @scm_tool = SVN.new url, options
     end
     
     def wget url, packtool
