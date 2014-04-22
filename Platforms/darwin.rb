@@ -15,6 +15,11 @@ class Darwin < Composite
       [Jud::C, Jud::Cxx]
     end
     
+    def compiler
+      require 'gcc'
+      GCC
+    end
+    
   end
   
   def initialize name
