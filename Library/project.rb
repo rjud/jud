@@ -293,9 +293,15 @@ class Project
       languages << Java
     end
     
+    def autotools &block
+      require 'autotools'
+      @build_tool = AutoTools.new
+      @build_tool.instance_eval &block if block_given?
+    end
+    
     def cmake &block
       require 'cmake'
-      @build_tool= CMake.new
+      @build_tool = CMake.new
       @build_tool.instance_eval &block if block_given?
     end
     
