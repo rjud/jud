@@ -1,7 +1,8 @@
+require 'composite'
 require 'c'
 require 'cxx'
 
-class Darwin < Composite
+class Linux < Composite
   
   class << self
     
@@ -21,7 +22,7 @@ class Darwin < Composite
     super(name)
   end
   
-  def build_name; "#{$platform.build_name}"; end
-  def short_build_name; ""; end
+  def build_name; "#{$platform.build_name}-#{short_build_name}"; end
+  def short_build_name; "gcc"; end
   
 end
