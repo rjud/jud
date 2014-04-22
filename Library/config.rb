@@ -63,6 +63,7 @@ module Jud
       File.open(@filename, 'w') do |out|
         YAML.dump(@config, out)
       end
+      File.new(@filename).chmod(0600)
     end
     
   end
