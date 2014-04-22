@@ -13,10 +13,12 @@ class Git < SCMTool
   end
   
   def checkout src, options = {}
-    args = ''
-    args += "-b #{options[:tag]} " if options.has_key? :tag
-    cmd = "\"#{path}\" clone #{args} #{@url} #{src.basename.to_s}"
+    cmd = "\"#{path}\" clone #{@url} #{src.basename.to_s}"
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
+    if options.has_key? :tag then
+      cmd = "\"#{path}\" checkout #{options[:tag]}"
+      Platform.execute cmd, {:wd => src}.merge(options)
+    end
   end
   
   def update src
