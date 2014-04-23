@@ -17,6 +17,35 @@ class Tarball < PackTool
   
   def pack_impl filename, directory
     
+    tarname = File.basename filename, (File.extname filename)
+    tarfile = File.new tarname, 'wb'
+    
+    Gem::Package::TarWriter.new(tarfile) do |tar|
+      Dir[File.join directory, '**/*'].each do |file|
+        mode = File.stat(file).mode
+        relative = file.sub /^#{Regexp::escape directory}\/?/, ''
+        if File.directory? file
+          tar.mkdir relative, mode
+        else
+          tar.add_file relative, mode do |tarf|
+            File.open file, 'rb' do
+              |f| tarf.write f.read
+            end
+          end
+        end
+      end
+    end
+    
+    tarfile.close
+    
+    tarfile = File.new tarname, 'rb'
+    zip = Zlib::GzipWriter.new(File.new filename, 'wb')
+    zip.write tarfile.read
+    tarfile.close
+    zip.close
+    
+    File.delete tarname
+    
   end
   
   def unpack filename, destination

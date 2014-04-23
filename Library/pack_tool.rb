@@ -1,3 +1,5 @@
+require 'tool'
+
 class PackTool < Tool
   
   attr_reader :ext
