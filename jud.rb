@@ -9,9 +9,49 @@ $:.unshift $juddir.join('Tools').to_s
 
 require 'config'
 require 'platform'
+require 'rubygems/gem_runner'
 require 'utilities'
 
 at_exit { Jud::Config.instance.save }
+
+AUTO_GEMS =
+  [
+   'mechanize',
+   'zip'
+  ]
+
+module Kernel
+  alias :require_orig :require
+  def require name
+    begin
+      require_orig name
+    rescue LoadError => e
+      begin
+        raise if not AUTO_GEMS.include? name
+        args = ['install', '--verbose']
+        args << '--user-install' if not File.writable? Gem.default_dir
+        args << name
+        dir = File.absolute_path (File.dirname ENV['_'])
+        args_s = ''
+        args.each { |arg| args_s += "#{arg} " }
+        puts (Platform.blue "#{dir}> gem #{args_s}")
+        Gem::GemRunner.new.run args
+      rescue Gem::SystemExitException => ex
+        if ex.exit_code == 0 then
+          begin
+            require_orig name
+            puts (Platform.blue "Gem #{name} successfully installed")
+          rescue LoadError => e
+            puts (Platform.red "Can't install gem #{name}")
+          end
+        else
+          puts (Platform.red ex)
+          exit ex.exit_code
+        end
+      end
+    end
+  end
+end
 
 $general_config = Jud::Config.instance.config['main']
 $tools_config = Jud::Config.instance.config['tools']
