@@ -92,6 +92,7 @@ class Project
       depend.install_dependencies
       build_types.each do |bt|
         depend.checkout_this bt
+        depend.patch_this bt
         depend.configure_this bt
         depend.build_this bt
         depend.install_this bt
@@ -132,6 +133,20 @@ class Project
     end
   end
   
+  def patch_this build_type
+    Dir.glob $home.join('Patches', @name, '*.patch').to_s do |patch|
+      require 'patch'
+      @config['patches'] = [] if not @config.has_key? 'patches'
+      patchname = File.basename patch, '.patch'
+      if @config['patches'].include? patchname then
+        puts (Platform.red "Patch #{patchname} already applied")
+      else
+        Patch.new.patch (srcdir build_type), patch
+        @config['patches'] << patchname
+      end
+    end
+  end
+  
   def configure_this build_type
     if self.class.build_tool.nil? then return end
     src = srcdir build_type
@@ -162,6 +177,7 @@ class Project
     instance_eval &self.class.env if self.class.env
     build_types.each do |bt|
       checkout_this bt
+      patch_this bt
       configure_this bt
       build_this bt
       install_this bt
@@ -211,7 +227,7 @@ class Project
   def pack_and_upload_this
     begin
       pack_this
-      upload_this if self.class.repository
+      upload_this if self.class.repository and @options.has_key? :version
     rescue SocketError => e
       puts (Platform.red "Can't upload the file #{packfilename}:\n#{e}")
     end
