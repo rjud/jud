@@ -17,12 +17,18 @@ class CVS < SCMTool
   
   def checkout src, options = {}
     # Login
-    cmd = '"' + path + '"'
-    cmd += " -d#{@url} login -p \"\""
+    cmd = "\"#{path}\" -d#{@url} login -p \"\""
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
     # Check-out
-    cmd = '"' + path + '"'
-    cmd += " -z3 -d#{@url} co -P -d #{src.basename.to_s} #{modulename}"
+    args = ''
+    if options.has_key? :tag then
+      args = " -r #{options[:tag]}"
+    elsif options.has_key? :branch then
+      args = " -r #{options[:branch]}"
+    elsif options.has_key? :version then
+      args = " -r #{options[:version]}"
+    end
+    cmd = "\"#{path}\" -z3 -d#{@url} co -P #{args} -d #{src.basename.to_s} #{modulename}"
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
   end
   

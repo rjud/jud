@@ -9,20 +9,25 @@ class SVN < SCMTool
   end
   
   def resolve_url options={}
-    if options.has_key? :version then
-      url = @url + '/branches/' + options[:version]
+    if options.has_key? :trunk then
+      url = @url + '/trunk/'
+    elsif options.has_key? :branch then
+      url = @url + '/branches/' + options[:branch]
+    elsif options.has_key? :tag then
+      url = @url + '/tags/' + options[:tag]
+    elsif options.has_key? :version then
+      url = @url + '/tags/' + options[:version]
     else
-      url = @url + '/trunk'
-    end    
+      url = @url + '/trunk/'
+    end
   end
   
   def checkout src, options = {}
     url = resolve_url options
-    cmd = '"' + path + '"'
-    cmd += ' checkout'
+    cmd = "\"#{path}\" checkout"
     cmd += " #{@options[:args]}" if @options.has_key? :args
-    cmd += ' ' + url
-    cmd += ' ' + src.basename.to_s
+    cmd += " -r #{options[:rev]}" if options.has_key? :rev
+    cmd += " #{url} #{src.basename.to_s}"
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
   end
   
