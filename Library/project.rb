@@ -12,13 +12,14 @@ class Project
     @name = self.class.name
     @scm_tool = self.class.scm_tool
     @app_config = $platform_config['projects']
-    @config = @app_config[@name] 
+    @config = @app_config[@name][options[:application]]
     @install = prefix
     @packdir = $packdir
   end
   
   def project sym
-    Application.project sym
+    require 'application'
+    Application::project sym
   end
   
   def build_name
@@ -50,11 +51,7 @@ class Project
     dir += "-#{@options[:version]}" if @options.has_key? :version
     dir += "-#{build_name}"
     dir += "-#{build_type.downcase}" if build_type
-    if @options.has_key? :application then
-      $build.join @options[:application], dir
-    else
-      $build.join dir
-    end
+    $build.join @options[:application], dir
   end
   
   def prefix
@@ -67,9 +64,9 @@ class Project
       dir = @name
       dir += "-#{@options[:version]}" if @options.has_key? :version
       dir += "-#{build_name}"
-      prefix = $install.join dir
+      prefix = $install.join @options[:application], dir
     else
-      prefix = $install
+      prefix = $install.join @options[:application]
     end
     prefix
   end
@@ -81,7 +78,7 @@ class Project
   end
   
   def install_dependency claz
-    depend  = Application.project claz.name.to_sym
+    depend = project claz.name.to_sym
     if depend.packfile.exist? then
       depend.unpack_this
     elsif depend.class.repository and depend.class.repository.exist? depend.packfile then

@@ -157,11 +157,17 @@ begin
   end
   
   $:.unshift $home.join('Applications').to_s
-  
-  #require 'application'
-  #Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
-  #  load rb
-  #end
+  require 'application'
+
+  def load_application appname
+    begin
+      load $home.join('Applications', "#{appname.downcase}.rb").to_s
+    rescue LoadError => e
+      puts (Platform.red "Can't load application #{appname}")
+      puts e
+      exit 1
+    end
+  end
   
   case ARGV.first
   when 'help', nil
@@ -180,24 +186,13 @@ begin
     app = Object.const_get(ARGV.shift).new
     app.scm_tool.branch app.src, ARGV.shift
   when 'build'
-    require 'application'
     ARGV.shift
     appname = ARGV.shift
-    begin
-      load $home.join('Applications', "#{appname.downcase}.rb").to_s
-    rescue LoadError => e
-      puts (Platform.red "Can't load application #{appname}")
-      puts e
-      exit 1
-    end
-    #Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
-    #  load rb
-    #end
-    #$conf = Object.const_get(ARGV.shift).new
+    load_application appname
     if ARGV.length > 0 then
-      Application.build ARGV.shift
+      Application.build appname, ARGV.shift
     else
-      Application.build
+      Application.build appname
     end
   when 'applications'
     puts 'Available applications'
@@ -218,7 +213,7 @@ begin
       end
     end
     claz = Object.const_get(name)
-    claz.new({ :options => options }).install
+    claz.new({ :application => 'main', :options => options }).install
   when 'options'
     ARGV.shift
     claz = Object.const_get(ARGV.shift)
@@ -244,8 +239,9 @@ begin
     app.pack
   when 'submit'
     ARGV.shift
-    $conf = Object.const_get(ARGV.shift).new
-    $conf.submit
+    appname = ARGV.shift
+    load_application appname
+    Application.submit appname
   when 'tag'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
@@ -258,8 +254,9 @@ begin
     ARGV.shift
     scm.update $home
     if ARGV.length > 0 then
-      $conf = Object.const_get(ARGV.shift).new
-      $conf.update
+      appname = ARGV.shift
+      load_application appname
+      Application.update
     end
   when 'upload'
     ARGV.shift
