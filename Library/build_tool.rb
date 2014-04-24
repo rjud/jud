@@ -13,11 +13,7 @@ class BuildTool < Tool
   end
   
   def project sym
-    if $conf.nil? then
-      Object.const_get(sym.to_s).new
-    else
-      $conf.project sym
-    end
+    Application.project sym
   end
   
   def option id, type, desc: '', default: nil, cond: nil

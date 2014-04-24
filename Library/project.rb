@@ -18,11 +18,7 @@ class Project
   end
   
   def project sym
-    if $conf.nil? then
-      Object.const_get(sym.to_s).new
-    else
-      $conf.project sym
-    end
+    Application.project sym
   end
   
   def build_name
@@ -54,7 +50,11 @@ class Project
     dir += "-#{@options[:version]}" if @options.has_key? :version
     dir += "-#{build_name}"
     dir += "-#{build_type.downcase}" if build_type
-    $build.join dir
+    if @options.has_key? :application then
+      $build.join @options[:application], dir
+    else
+      $build.join dir
+    end
   end
   
   def prefix
@@ -81,7 +81,7 @@ class Project
   end
   
   def install_dependency claz
-    depend = if $conf.nil? then claz.new else $conf.project claz.name.to_sym end
+    depend  = Application.project claz.name.to_sym
     if depend.packfile.exist? then
       depend.unpack_this
     elsif depend.class.repository and depend.class.repository.exist? depend.packfile then

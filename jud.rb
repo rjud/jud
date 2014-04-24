@@ -156,10 +156,12 @@ begin
     load rb
   end
   
-  require 'application'
-  Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
-    load rb
-  end
+  $:.unshift $home.join('Applications').to_s
+  
+  #require 'application'
+  #Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
+  #  load rb
+  #end
   
   case ARGV.first
   when 'help', nil
@@ -178,12 +180,24 @@ begin
     app = Object.const_get(ARGV.shift).new
     app.scm_tool.branch app.src, ARGV.shift
   when 'build'
+    require 'application'
     ARGV.shift
-    $conf = Object.const_get(ARGV.shift).new
+    appname = ARGV.shift
+    begin
+      load $home.join('Applications', "#{appname.downcase}.rb").to_s
+    rescue LoadError => e
+      puts (Platform.red "Can't load application #{appname}")
+      puts e
+      exit 1
+    end
+    #Dir.glob $home.join('Applications', '*.rb').to_s do |rb|
+    #  load rb
+    #end
+    #$conf = Object.const_get(ARGV.shift).new
     if ARGV.length > 0 then
-      $conf.build ARGV.shift
+      Application.build ARGV.shift
     else
-      $conf.build
+      Application.build
     end
   when 'applications'
     puts 'Available applications'
