@@ -35,6 +35,10 @@ module Application
     end
   end
   
+  def project sym
+    Application::project sym
+  end
+  
   def Application::project sym
     if $arguments.has_key? sym then
       Object.const_get(sym.to_s).new $arguments[sym]

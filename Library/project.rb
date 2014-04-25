@@ -4,7 +4,7 @@ class Project
   
   class Error < RuntimeError; end
   
-  attr_reader :name, :packdir, :scm_tool
+  attr_reader :name, :packdir, :scm_tool, :config
   
   def initialize options={}
     self.class.languages.uniq!
@@ -55,12 +55,12 @@ class Project
   end
   
   def prefix
-    config = @app_config['separate_install_trees']
-    unless config.boolean? then
-      config = true
-      @app_config['separate_install_trees'] = config = true
+    return Pathname.new @config['prefix'] if @config.has_key? 'prefix'
+    separate = @app_config['separate_install_trees']
+    unless separate.boolean? then
+      @app_config['separate_install_trees'] = separate = true
     end
-    if config then
+    if separate then
       dir = @name
       dir += "-#{@options[:version]}" if @options.has_key? :version
       dir += "-#{build_name}"
@@ -87,6 +87,7 @@ class Project
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
       depend.install_dependencies
+      instance_eval &depend.class.env if depend.class.env
       build_types.each do |bt|
         depend.checkout_this bt
         depend.patch_this bt
@@ -100,12 +101,16 @@ class Project
     depend.register_this
   end
   
+  def install_dependency? depend, cond
+    return false if not cond.nil? and not @options[:options][cond]
+    prf = Application::project(depend.name.to_sym).prefix
+    return true if not File.directory? prf
+    return false
+  end
+  
   def install_dependencies
     self.class.depends.each do |depend, cond|
-      install = cond.nil? || @options[:options][cond]
-      config = @app_config[depend.name]
-      install = (not config.has_key? 'prefix') if install
-      install_dependency depend if install
+      install_dependency depend if install_dependency? depend, cond
     end
   end
   
@@ -166,7 +171,7 @@ class Project
   end
   
   def register_this
-    @config['prefix'] = @install.to_s
+    #@config['prefix'] = @install.to_s
   end
   
   def install
