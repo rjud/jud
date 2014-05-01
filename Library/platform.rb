@@ -201,4 +201,14 @@ class Platform
     
   end
   
+  def pack_tool
+    if Platform.is_windows? then
+      require 'ziptool'
+      ZipTool.new
+    else
+      require 'tarball'
+      Tarball.new
+    end
+  end
+  
 end

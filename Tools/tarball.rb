@@ -11,8 +11,8 @@ class Tarball < PackTool
   
   Tarball.configure
   
-  def initialize
-    super('tar.gz')
+  def initialize ext='tar.gz'
+    super(ext)
   end
   
   def pack_impl filename, directory
@@ -23,7 +23,7 @@ class Tarball < PackTool
     Gem::Package::TarWriter.new(tarfile) do |tar|
       Dir[File.join directory, '**/*'].each do |file|
         mode = File.stat(file).mode
-        relative = file.sub /^#{Regexp::escape directory}\/?/, ''
+        relative = file.sub /^#{Regexp::escape directory.to_s}\/?/, ''
         if File.directory? file
           tar.mkdir relative, mode
         else

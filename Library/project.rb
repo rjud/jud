@@ -117,7 +117,8 @@ class Project
         depend.build_this bt
         depend.install_this bt
       end
-      depend.pack_and_upload_this if depend.pack_and_upload_this?
+      depend.pack_this if depend.pack_this?
+      depend.upload_this if depend.upload_this?
       puts Platform.yellow("[#{name}] dependency #{depend.name} is installed")
     end
     depend.register_this
@@ -218,7 +219,8 @@ class Project
       build_this bt
       install_this bt
     end
-    pack_and_upload_this if pack_and_upload_this?
+    pack_this if pack_this?
+    upload_this if upload_this?
     register_this
   end
   
@@ -243,25 +245,33 @@ class Project
       status = s if s > status
       install_this bt
     end
+    pack_this if pack_this?
     # Upload if good
-    pack_and_upload_this if pack_and_upload_this_after_submit? status
+    upload_this if upload_this_after_submit? status
     register_this
   end
   
-  def pack_and_upload_this_after_submit? status
-    return false if self.class.repository.nil?
-    case status
-    when SubmitTool::OK then true
-    when SubmitTool::TESTS_NOK then true
-    else false
+  def upload_this_after_submit? status
+    if self.class.repository.nil? then
+      false
+    else
+      case status
+      when SubmitTool::OK then true
+      when SubmitTool::TESTS_NOK then true
+      else false
+      end
     end
   end
   
+  def pack_tool
+    $platform.pack_tool
+  end
+    
   def packfilename
     filename = @name
     filename += "-#{@options[:version]}" if @options.has_key? :version
     filename += "-#{build_name}"
-    filename += ".#{self.class.pack_tool.ext}"
+    filename += ".#{pack_tool.ext}"
     filename
   end
   
@@ -269,27 +279,22 @@ class Project
     Pathname.new(@packdir).join packfilename
   end
   
-  def pack_and_upload_this?
-    self.class.repository and @options.has_key? :version
+  def pack_this?
+    true
   end
   
-  def pack_and_upload_this
-    begin
-      pack_this
-      upload_this
-    rescue SocketError => e
-      puts (Platform.red "Can't upload the file #{packfilename}:\n#{e}")
-    end
+  def upload_this?
+    self.class.repository and @options.has_key? :version
   end
   
   def pack_this
     puts Platform.blue("Pack #{packfile.basename.to_s}")
-    self.class.pack_tool.pack packfile, @install
+    pack_tool.pack packfile, @install
   end
   
   def unpack_this
     puts Platform.blue("Unpack #{packfile.basename.to_s} to #{@install.to_s}")
-    self.class.pack_tool.unpack packfile, @install
+    pack_tool.unpack packfile, @install
   end
   
   def download_this
@@ -314,12 +319,7 @@ class Project
   class << self
     
     attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :env
-    
-    def pack_tool
-      zip
-      @pack_tool
-    end
-    
+        
     def languages
       @languages ||= []
     end
@@ -400,12 +400,7 @@ class Project
       require 'wget'
       @alternate_scm_tool = Wget.new url, packtool
     end
-    
-    def zip
-      require 'ziptool'
-      @pack_tool = ZipTool.new
-    end
-    
+        
   end
   
 end
