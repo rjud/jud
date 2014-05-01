@@ -37,11 +37,11 @@ class CTest < SubmitTool
     exit_status = Platform.execute cmd, safe: true, keep: '!!!!'
     if exit_status[0].success? then
       SubmitTool::OK
-    elsif exit_status[1].match(/Configuration failed/) then
+    elsif exit_status[1].last.match(/Configuration failed/) then
       SubmitTool::CONF_NOK
-    elsif exit_status[1].match(/Build failed/) then
+    elsif exit_status[1].last.match(/Build failed/) then
       SubmitTool::BUILD_NOK
-    elsif exit_status[1].match(/Some tests failed/) then
+    elsif exit_status[1].last.match(/Some tests failed/) then
       SubmitTool::TESTS_NOK
     else
       SubmitTool::NOK

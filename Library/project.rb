@@ -71,8 +71,30 @@ class Project
     prefix
   end
   
+  def all_dependencies
+    all = []
+    self.class.depends.each do |depend, cond|
+      dep = project(depend.name.to_sym)
+      if to_be_installed? depend, cond then
+        all << dep
+        all.concat dep.all_dependencies
+      end
+    end
+    all.uniq!
+    all
+  end
+  
   def update
+    srcs = []
+    bts = []
     build_types.each do |bt|
+      src = srcdir bt
+      if not srcs.include? src then
+        srcs << src
+        bts << bt
+      end
+    end
+    bts.each do |bt|
       update_this bt
     end
   end
@@ -95,14 +117,18 @@ class Project
         depend.build_this bt
         depend.install_this bt
       end
-      depend.pack_and_upload_this
+      depend.pack_and_upload_this if depend.pack_and_upload_this?
       puts Platform.yellow("[#{name}] dependency #{depend.name} is installed")
     end
     depend.register_this
   end
   
+  def to_be_installed? depend, cond
+    cond.nil? or @options[:options][cond]
+  end
+  
   def install_dependency? depend, cond
-    return false if not cond.nil? and not @options[:options][cond]
+    return false if not to_be_installed? depend, cond
     prf = Application::project(depend.name.to_sym).prefix
     return true if not File.directory? prf
     return false
@@ -169,9 +195,17 @@ class Project
     if self.class.build_tool.nil? then return end
     self.class.build_tool.install (builddir build_type)
   end
+
+  def get_version
+    if @options.has_key? :version then
+      @options[:version]
+    else
+      @scm_tool.get_revision (srcdir build_types[0]), @options
+    end
+  end
   
   def register_this
-    #@config['prefix'] = @install.to_s
+    @config['version'] = get_version
   end
   
   def install
@@ -184,29 +218,38 @@ class Project
       build_this bt
       install_this bt
     end
-    pack_and_upload_this
+    pack_and_upload_this if pack_and_upload_this?
     register_this
   end
   
   def submit
-    install_dependencies
+    # Variables
     self.class.submit_tool.build_tool = self.class.build_tool
     self.class.submit_tool.scm_tool = self.class.scm_tool
     status = SubmitTool::OK
+    # Install dependencies
+    install_dependencies
+    # Prepare environment
+    instance_eval &self.class.env if self.class.env
+    # Submit for each build
     build_types.each do |bt|
       src = srcdir bt
       build = builddir bt
       buildname = "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
       @scm_tool.checkout src, @options if not File.directory? src
+      patch_this bt
       s = self.class.submit_tool.submit src, build, @install, bt, buildname, @options[:options]
       status = s if s > status
+      install_this bt
     end
-    pack_and_upload_this if pack? status
-    @config['prefix'] = @install.to_s
+    # Upload if good
+    pack_and_upload_this if pack_and_upload_this_after_submit? status
+    register_this
   end
   
-  def pack? status
+  def pack_and_upload_this_after_submit? status
+    return false if self.class.repository.nil?
     case status
     when SubmitTool::OK then true
     when SubmitTool::TESTS_NOK then true
@@ -226,10 +269,14 @@ class Project
     Pathname.new(@packdir).join packfilename
   end
   
+  def pack_and_upload_this?
+    self.class.repository and @options.has_key? :version
+  end
+  
   def pack_and_upload_this
     begin
       pack_this
-      upload_this if self.class.repository and @options.has_key? :version
+      upload_this
     rescue SocketError => e
       puts (Platform.red "Can't upload the file #{packfilename}:\n#{e}")
     end

@@ -31,6 +31,10 @@ class SVN < SCMTool
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
   end
   
+  def get_revision src, options = {}
+    raise "Raise svnversion"
+  end
+  
   def update src
     cmd = '"' + path + '"'
     cmd += ' update'

@@ -21,6 +21,12 @@ class Git < SCMTool
     end
   end
   
+  def get_revision src, options = {}
+    cmd = "\"#{path}\" describe --always"
+    exit_status = Platform.execute cmd, {:wd => src, :keep => '[0-9a-f]'}.merge(options)
+    exit_status[1].last
+  end
+  
   def update src
     cmd = "\"#{path}\" pull"
     Platform.execute cmd, wd: src

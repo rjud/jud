@@ -2,6 +2,7 @@ module Application
   
   $arguments = {}
   $projects = []
+  $allprojects = {}
   
   def prj sym, args={}, &block
     $arguments[sym] = { :application => self.to_s, :options => {} }
@@ -40,10 +41,18 @@ module Application
   end
   
   def Application::project sym
-    if $arguments.has_key? sym then
-      Object.const_get(sym.to_s).new $arguments[sym]
+    if $allprojects.has_key? sym then
+      $allprojects[sym]
     else
-      Object.const_get(sym.to_s).new ({ :application => 'main', :options => {} })
+      prj = nil
+      if $arguments.has_key? sym then
+        prj = Object.const_get(sym.to_s).new $arguments[sym]
+      else
+        options = { :application => 'main', :options => {} }
+        prj = Object.const_get(sym.to_s).new options
+      end
+      $allprojects[sym] = prj
+      prj
     end
   end
   
@@ -51,9 +60,15 @@ module Application
     $arguments[sym]
   end
   
-  def update
-    projects.each do |a|
-      project(a.name.to_sym).update
+  def update    
+    all = []
+    projects.each do |p|
+      all << project(p.name.to_sym)
+      all.concat project(p.name.to_sym).all_dependencies
+    end
+    all.uniq!
+    all.each do |p|
+      p.update
     end
   end
   

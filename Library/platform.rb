@@ -141,12 +141,12 @@ class Platform
     Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
       while line = stdout_err.gets
         puts line
-        lines << line if options.key? :keep and line.match(/#{options[:keep]}/)
+        lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
       end
       exit_status = wait_thr.value
     end
     if options[:safe] or exit_status.success? then
-      [exit_status, lines.last]
+      [exit_status, lines]
     else
       raise Error, "Command #{cmd} failed"
     end
