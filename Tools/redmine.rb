@@ -107,6 +107,9 @@ class Redmine < RepositoryTool
       end
     rescue Mechanize::ResponseCodeError => e
       puts e
+    rescue SocketError => e
+      msg = "Can't check the existence of the file #{filename}:\n#{e}"
+      puts (Platform.red msg)
     end
     return false
   end
