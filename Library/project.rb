@@ -156,25 +156,31 @@ class Project
   end
   
   def load_binenv
-    self.class.binenv.each do |path|
-      if Platform.is_windows? then
-        ENV['PATH'] = path << ";" << ENV['PATH']
-      else
-        ENV['PATH'] = path << ":" << ENV['PATH']
+    self.class.binenv.each do |hash|
+      hash.each do |prj, fun|
+        path = project(prj).instance_eval fun.to_s
+        if Platform.is_windows? then
+          ENV['PATH'] = path << ";" << ENV['PATH']
+        else
+          ENV['PATH'] = path << ":" << ENV['PATH']
+        end
       end
     end
   end
   
   def load_libenv  
-    self.class.libenv.each do |path|
-      if Platform.is_windows? then
-        ENV['PATH'] = path << ";" << ENV['PATH']
-      elsif Platform.is_linux? then
-        ENV['LD_LIBRARY_PATH'] = path << ":" << ENV['LD_LIBRARY_PATH']
-      elsif Platform.is_darwin? then
-        ENV['DYLD_LIBRARY_PATH'] = path << ":" << ENV['DYLD_LIBRARY_PATH']
-      else
-        raise Error, "Not implemented"
+    self.class.libenv.each do |hash|
+      hash.each do |prj, fun|
+        path = project(prj).instance_eval fun.to_s
+        if Platform.is_windows? then
+          ENV['PATH'] = path << ";" << ENV['PATH']
+        elsif Platform.is_linux? then
+          ENV['LD_LIBRARY_PATH'] = path << ":" << ENV['LD_LIBRARY_PATH']
+        elsif Platform.is_darwin? then
+          ENV['DYLD_LIBRARY_PATH'] = path << ":" << ENV['DYLD_LIBRARY_PATH']
+        else
+          raise Error, "Not implemented"
+        end
       end
     end
   end
@@ -385,12 +391,7 @@ class Project
     def add_build_type name
       @build_types << name
     end
-    
-    def project sym
-      require 'application'
-      Application::project sym
-    end
-        
+            
     def c
       require 'c'
       languages << Jud::C
