@@ -20,12 +20,20 @@ class BuildTool < Tool
     @options[id] = Option.new(desc, type, default, cond)
   end
   
+  def depends prj
+    [].tap do |depends|
+      @options.each do |id, opt|
+        depends + (prj.auto_depends opt.default, opt.cond)
+      end
+    end
+  end
+  
   def resolve_options options
     ret = {}
     # Eval the default options of the project
     @options.each do |id, opt|
       if not opt.default.nil? and (opt.cond.nil? or options.key? opt.cond or ( ret.key? opt.cond and ret[opt.cond].value) ) then
-        ret[id] = ResolvedOption.new(id.to_s, opt.type, true, opt.default.call)
+        ret[id] = ResolvedOption.new id.to_s, opt.type, true, (Project.project_eval opt.default)
       end
     end
     # Merge them with the given options

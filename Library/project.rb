@@ -71,9 +71,10 @@ class Project
     prefix
   end
   
+  # All dependencies (by recursion) after applying conditions
   def all_dependencies
     all = []
-    self.class.depends.each do |depend, cond|
+    all_depends.each do |depend, cond|
       dep = project(depend.name.to_sym)
       if to_be_installed? depend, cond then
         all << dep
@@ -136,8 +137,58 @@ class Project
   end
   
   def install_dependencies
-    self.class.depends.each do |depend, cond|
+    all_depends.each do |depend, cond|
       install_dependency depend if install_dependency? depend, cond
+    end
+  end
+  
+  # Dependencies and conditions from the meta_description and from the options
+  def all_depends
+    self.class.build_tool.depends(self) + self.class.depends
+  end
+  
+  # Useful method to compute dependencies and conditions from the options
+  def auto_depends args, cond=nil
+    case args
+    when Hash
+      [].tap do |depends|
+        args.each do |prj, arg|
+          depends << [prj, cond]
+        end
+      end
+    else
+      []
+    end
+  end
+  
+  def self.project_eval args
+    eval = project_evals args
+    raise Error, "Only one argument:\n#{eval}" if eval.size != 1
+    eval.first
+  end
+  
+  def self.project_evals args
+    case args
+    when Proc
+      [args.call]
+    when Hash
+      [].tap do |evals|
+        args.each do |prj, arg|
+          evals <<
+            case arg
+            when Symbol
+              Application::project(prj).send arg
+            when Array
+              Application::project(prj).send arg[0], *arg[1..-1]
+            when Proc
+              arg.call Application::project(prj)
+            else
+              raise Error, "Not implemented for #{arg.class}"
+            end
+        end
+      end
+    else
+      raise Error, "Not implemented for #{args.class}"
     end
   end
   
@@ -156,9 +207,8 @@ class Project
   end
   
   def load_binenv
-    self.class.binenv.each do |hash|
-      hash.each do |prj, fun|
-        path = project(prj).instance_eval fun.to_s
+    self.class.binenv.each do |args|
+      Project.project_evals(args).each do |path|
         if Platform.is_windows? then
           ENV['PATH'] = path << ";" << ENV['PATH']
         else
@@ -169,9 +219,8 @@ class Project
   end
   
   def load_libenv  
-    self.class.libenv.each do |hash|
-      hash.each do |prj, fun|
-        path = project(prj).instance_eval fun.to_s
+    self.class.libenv.each do |args|
+      Project.project_evals(args).each do |path|
         if Platform.is_windows? then
           ENV['PATH'] = path << ";" << ENV['PATH']
         elsif Platform.is_linux? then
@@ -352,9 +401,10 @@ class Project
     self.class.repository.upload packfile, @options
   end
   
+  # Dependencies after applying conditions
   def depends
     depends = []
-    self.class.depends.each do |depend, cond|
+    all_depends.each do |depend, cond|
       depends << depend if cond.nil? or @options[:options][cond.to_sym]
     end
     depends
