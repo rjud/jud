@@ -98,7 +98,7 @@ class Project
       update_this bt
     end
   end
-  
+    
   def install_dependency claz
     depend = project claz.name.to_sym
     if depend.packfile.exist? then
@@ -109,7 +109,7 @@ class Project
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
       depend.install_dependencies
-      instance_eval &depend.class.env if depend.class.env
+      load_env
       build_types.each do |bt|
         depend.checkout_this bt
         depend.patch_this bt
@@ -138,6 +138,44 @@ class Project
   def install_dependencies
     self.class.depends.each do |depend, cond|
       install_dependency depend if install_dependency? depend, cond
+    end
+  end
+  
+  def load_env
+    puts (Platform.blue "Load environment")
+    load_binenv
+    load_libenv
+    puts (Platform.yellow "PATH: #{ENV['PATH']}")
+    if Platform.is_linux? then
+      puts (Platform.yellow "LD_LIBRARY_PATH: #{ENV['LD_LIBRARY_PATH']}")
+    elsif Platform.is_darwin? then
+      puts (Platform.yellow "DYLD_LIBRARY_PATH: #{ENV['DYLD_LIBRARY_PATH']}")
+    else
+      raise Error, "Not implemented"
+    end
+  end
+  
+  def load_binenv
+    self.class.binenv.each do |path|
+      if Platform.is_windows? then
+        ENV['PATH'] = path << ";" << ENV['PATH']
+      else
+        ENV['PATH'] = path << ":" << ENV['PATH']
+      end
+    end
+  end
+  
+  def load_libenv  
+    self.class.libenv.each do |path|
+      if Platform.is_windows? then
+        ENV['PATH'] = path << ";" << ENV['PATH']
+      elsif Platform.is_linux? then
+        ENV['LD_LIBRARY_PATH'] = path << ":" << ENV['LD_LIBRARY_PATH']
+      elsif Platform.is_darwin? then
+        ENV['DYLD_LIBRARY_PATH'] = path << ":" << ENV['DYLD_LIBRARY_PATH']
+      else
+        raise Error, "Not implemented"
+      end
     end
   end
   
@@ -211,7 +249,7 @@ class Project
   
   def install
     install_dependencies
-    instance_eval &self.class.env if self.class.env
+    load_env
     build_types.each do |bt|
       checkout_this bt
       patch_this bt
@@ -232,7 +270,7 @@ class Project
     # Install dependencies
     install_dependencies
     # Prepare environment
-    instance_eval &self.class.env if self.class.env
+    load_env
     # Submit for each build
     build_types.each do |bt|
       src = srcdir bt
@@ -318,8 +356,8 @@ class Project
     
   class << self
     
-    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :env
-        
+    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :binenv, :libenv
+    
     def languages
       @languages ||= []
     end
@@ -332,6 +370,14 @@ class Project
       @depends ||= []
     end
     
+    def binenv
+      @binenv ||= []
+    end
+    
+    def libenv
+      @libenv ||= []
+    end
+    
     def depend_on name, cond=nil
       depends << [name, cond]
     end
@@ -340,10 +386,11 @@ class Project
       @build_types << name
     end
     
-    def setenv &block
-      @env = block if block_given?
+    def project sym
+      require 'application'
+      Application::project sym
     end
-    
+        
     def c
       require 'c'
       languages << Jud::C
