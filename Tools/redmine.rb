@@ -143,9 +143,9 @@ class Redmine < RepositoryTool
         versionid = version_id version
       end
     rescue Mechanize::ResponseCodeError => e
-      puts (Platform.red "Can't upload the file #{filename}:\n#{e}")
     rescue SocketError => e
       puts (Platform.red "Can't upload the file #{filename}:\n#{e}")
+      return
     end
     
     action = File.join(@url, @files_page_path)
