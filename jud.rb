@@ -218,7 +218,7 @@ begin
     ARGV.shift
     claz = Object.const_get(ARGV.shift)
     claz.build_tool.options.each do | key, option |
-      puts key, "\t" + (option[1].nil? ? 'No description' : option[1])
+      puts key, "\t" + (option[1].nil? ? 'No description' : option[1].to_s)
     end
   when 'optionadd'
     ARGV.shift
