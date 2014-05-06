@@ -32,7 +32,11 @@ class SVN < SCMTool
   end
   
   def get_revision src, options = {}
-    raise "Raise svnversion"
+    dir = File.dirname path
+    bin = File.join(dir, 'svnversion')
+    cmd = "#{bin}"
+    exit_status = Platform.execute cmd, {:wd => src, :keep => '[0-9a-z]'}.merge(options)
+    exit_status[1].last
   end
   
   def update src
