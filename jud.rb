@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby -W0
+#!/usr/bin/env ruby
 
 require 'pathname'
 
@@ -14,6 +14,9 @@ require 'utilities'
 
 at_exit { Jud::Config.instance.save }
 
+$general_config = Jud::Config.instance.config['main']
+$tools_config = Jud::Config.instance.config['tools']
+
 AUTO_GEMS =
   [
    'mechanize',
@@ -28,14 +31,22 @@ module Kernel
     rescue LoadError => e
       begin
         raise if not AUTO_GEMS.include? name
+        # Prepare arguments
         args = ['install', '--verbose']
         args << '--user-install' if not File.writable? Gem.default_dir
         args << name
+        # Get the current directory
         dir = File.absolute_path (File.dirname ENV['_'])
-        args_s = ''
-        args.each { |arg| args_s += "#{arg} " }
+        # Set proxy if needed
+        if Platform.use_proxy? 'https://rubygems.org/' then
+          ENV['http_proxy'] = Platform.proxy_url
+        end
+        # Run the gem command
+        args_s = ''.tap { |s| args.each { |arg| s.concat "#{arg} " } }
         puts (Platform.blue "#{dir}> gem #{args_s}")
         Gem::GemRunner.new.run args
+        # Unset proxy
+        ENV.delete 'http_proxy'
       rescue Gem::SystemExitException => ex
         if ex.exit_code == 0 then
           begin
@@ -52,9 +63,6 @@ module Kernel
     end
   end
 end
-
-$general_config = Jud::Config.instance.config['main']
-$tools_config = Jud::Config.instance.config['tools']
 
 require 'git'
 require 'svn'
@@ -88,7 +96,7 @@ when 'download' then
           if klass.configured? then
             puts (Platform.green "Try to download with #{klass.name}")
             scm = klass.new url
-            status = scm.checkout home, { :safe => true }
+            status = scm.checkout home
             throw :download_ok if status[0].success?
           end
         rescue Platform::Error => e

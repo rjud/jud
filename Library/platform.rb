@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'open3'
+require 'uri'
 
 class Platform
   
@@ -123,6 +124,21 @@ class Platform
     @config['tools'].each_key do |name|
       load_tool name
     end
+  end
+  
+  def self.use_proxy? url
+    uri = URI.parse url
+    uri.host
+    $general_config['proxy']['exceptions'].each do |exception|
+      return false if uri.host.end_with? exception
+    end
+    return true
+  end
+  
+  def self.proxy_url
+    host = $general_config['proxy']['host']
+    port = $general_config['proxy']['port']
+    return "http://#{host}:#{port}"
   end
   
   # wd, safe, keep

@@ -18,13 +18,7 @@ class Wget < SCMTool
   def checkout src, options = {}
     require 'mechanize'
     agent = Mechanize.new
-    uri = URI.parse @url
-    uri.host
-    set_proxy = true
-    $general_config['proxy']['exceptions'].each do |exception|
-      set_proxy = false if uri.host.end_with? exception
-    end
-    agent.set_proxy $general_config['proxy']['host'], $general_config['proxy']['port'].to_i if set_proxy
+    agent.set_proxy $general_config['proxy']['host'], $general_config['proxy']['port'].to_i if Platform.use_proxy? @url
     agent.pluggable_parser.default = Mechanize::Download
     filename = src.dirname.join('tmp.tar.gz')
     puts (Platform.blue "Download #{@url} to #{filename}")
