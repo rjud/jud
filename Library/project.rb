@@ -153,7 +153,7 @@ class Project
     when Hash
       [].tap do |depends|
         args.each do |prj, arg|
-          depends << [prj, cond]
+          depends << [Application::project(prj), cond]
         end
       end
     else

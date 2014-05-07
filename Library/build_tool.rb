@@ -23,7 +23,7 @@ class BuildTool < Tool
   def depends prj
     [].tap do |depends|
       @options.each do |id, opt|
-        depends + (prj.auto_depends opt.default, opt.cond)
+        depends.concat (prj.auto_depends opt.default, opt.cond)
       end
     end
   end
