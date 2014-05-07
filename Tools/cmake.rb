@@ -15,7 +15,15 @@ class CMake < BuildTool
   
   def option_to_s opt
     case opt.type
-    when :BOOLEAN then opt.value ? 'ON' : 'OFF'
+    when :BOOLEAN
+      opt.value ? 'ON' : 'OFF'
+    when :PATH
+      case opt.value
+      when Pathname
+        opt.value.to_s
+      else
+        opt.value
+      end
     else opt.value
     end
   end
