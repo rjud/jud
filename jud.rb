@@ -275,6 +275,6 @@ begin
     app.upload_this
   end
   
-rescue Platform::Error, Tool::Error => e
+rescue Platform::Error, Project::Error, Tool::Error => e
   puts (Platform.red e)
 end

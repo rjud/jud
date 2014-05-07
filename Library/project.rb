@@ -123,6 +123,7 @@ class Project
       puts Platform.yellow("[#{name}] dependency #{depend.name} is installed")
     end
     depend.register_this
+    depend.deploy_this
   end
   
   def to_be_installed? depend, cond
@@ -299,7 +300,77 @@ class Project
   end
   
   def register_this
+    # Register version
     @config['version'] = get_version
+    # Name of the files file
+    filesname = prefix.dirname.join (prefix.basename.to_s + '.files')
+    # Get the files already installed
+    installed_files = [].tap do |files|
+      if File.exists? filesname then
+        File.open filesname, 'r' do |file|
+          files.concat file.readlines
+        end
+      end
+    end
+    # Go to /usr
+    usr = $install.join 'usr'
+    FileUtils.mkdir_p usr.to_s if not usr.directory?
+    Dir.chdir usr.to_s
+    # Check
+    all_files = []
+    alert_files = []
+    unless Platform.is_windows? then
+      Dir[prefix.join('**', '**')].each do |f|
+        new = f.sub prefix.to_s + '/', ''
+        new_abs = usr.join(new).to_s
+        if File.directory? f then
+          FileUtils.mkdir_p new if not File.directory? new
+        else
+          all_files << new_abs
+          if File.exists? new and not installed_files.include? new_abs then
+            alert_files << new_abs
+          end
+        end
+      end
+    end
+    files_to_link = all_files - installed_files
+    files_to_unlink = installed_files - all_files
+    puts all_files
+    puts " --- "
+    puts installed_files
+    puts " --- "
+    puts files_to_link
+    puts " --- "
+    puts files_to_unlink
+    # Raise an exception if alert_files is not empty
+    if alert_files.size > 0 then
+      msg = "The following files have been installed by a previous package:\n"
+      alert_files.each do |f|
+        msg += "#{f}\n"
+      end
+      raise Error, msg
+    end
+    # Create symlinks to /usr
+    files_to_link.each do |f|
+      new = f.sub prefix.to_s + '/', ''
+      puts "Link #{new} -> #{f}"
+      begin
+        File.symlink f, new
+      rescue Exception => e
+        puts (Platform.red e)
+      end
+    end
+    # Remove symlinks from /usr
+    files_to_unlink.each do |f|
+      puts "Unlink #{f}"
+      File.unlink f
+    end
+    # Save the list of files
+    File.open prefix.dirname.join(prefix.basename.to_s + '.files'), 'w' do |file|
+      all_files.each do |f|
+        file.write("#{f}\n")
+      end
+    end
   end
   
   def install
@@ -315,6 +386,7 @@ class Project
     pack_this if pack_this?
     upload_this if upload_this?
     register_this
+    deploy_this
   end
   
   def submit
@@ -342,6 +414,7 @@ class Project
     # Upload if good
     upload_this if upload_this_after_submit? status
     register_this
+    deploy_this
   end
   
   def upload_this_after_submit? status
@@ -370,6 +443,10 @@ class Project
   
   def packfile
     Pathname.new(@packdir).join packfilename
+  end
+  
+  def deploy_this
+    
   end
   
   def pack_this?
