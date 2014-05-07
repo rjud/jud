@@ -9,7 +9,8 @@ class Patch < Tool
   end
   
   def patch srcdir, file
-    cmd = "\"#{path}\" -p1 < #{file}"
+    arguments = file.split('.')
+    cmd = "\"#{path}\" -p#{arguments[2]} < #{file}"
     Platform.execute cmd, wd: srcdir
   end
   
