@@ -18,7 +18,15 @@ class AutoTools < BuildTool
   end
   
   def configure src, build, install, build_type, options={}
-    cmd = "#{src}/configure -C"
+    configure = File.join(src, 'configure')
+    unless File.exists? configure then
+      Platform.execute "aclocal -I config", wd: src
+      Platform.execute "libtoolize --force", wd: src
+      Platform.execute "autoheader", wd: src
+      Platform.execute "automake --add-missing", wd: src
+      Platform.execute "autoconf", wd: src
+    end
+    cmd = "#{configure}"
     cmd += " --prefix=#{install.to_s}"    
     resolve_options(options).each do |opt|
       cmd += " #{opt.name}=#{option_to_s opt}"
