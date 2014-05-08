@@ -124,6 +124,7 @@ class Project
     end
     depend.deploy_this if depend.deploy_this?
     depend.register_this
+    depend.trash_this
   end
   
   def to_be_installed? depend, cond
@@ -302,6 +303,24 @@ class Project
   def register_this
     # Register version
     @config['version'] = get_version
+  end
+  
+  def trash_this
+    puts (Platform.blue "Cleaning...")
+    timestamp = DateTime.now.strftime '%Y%m%d%H%M%S%L'
+    FileUtils.mkdir_p $trash unless $trash.directory?
+    Dir.chdir $trash
+    build_types.each do |bt|
+      if (builddir bt).directory? then
+        new_name = builddir(bt).basename.to_s + '-' + timestamp
+        FileUtils.mv (builddir bt), new_name, :verbose => true 
+      end
+      if (srcdir bt).directory? then
+        new_name = srcdir(bt).basename.to_s + '-' + timestamp
+        FileUtils.mv (srcdir bt), new_name, :verbose => true
+      end
+    end
+    @config.delete 'patches'
   end
   
   def deploy_this?

@@ -9,6 +9,7 @@ $:.unshift $juddir.join('Tools').to_s
 
 require 'config'
 require 'platform'
+require 'project'
 require 'rubygems/gem_runner'
 require 'utilities'
 

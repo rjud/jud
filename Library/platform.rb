@@ -30,12 +30,21 @@ class Platform
     end
     config = Jud::Config.instance.config['platforms'][name]
     config['repository'] = repository
-    config['src'] = prefix.join("src").to_s
-    config['build'] = prefix.join("build-#{name}").to_s
-    config['install'] = prefix.join("install-#{name}").to_s
-    config['packages'] = prefix.join("packages").to_s
+    config['home'] = default_home prefix
+    config['src'] = default_src prefix
+    config['build'] = default_build prefix
+    config['install'] = default_install prefix
+    config['packages'] = default_packages prefix
+    config['trash'] = default_trash prefix
     config['composites'] = []
   end
+  
+  def self.default_home prefix; prefix.join('home').to_s; end
+  def self.default_src prefix; prefix.join('src').to_s; end
+  def self.default_build prefix; prefix.join("build-#{name}").to_s; end
+  def self.default_install prefix; prefix.join("install-#{name}").to_s; end
+  def self.default_packages prefix; prefix.join('packages').to_s; end
+  def self.default_trash prefix; prefix.join("trash").to_s; end
   
   attr_reader :name, :language_to_composite
   
@@ -44,11 +53,22 @@ class Platform
     @config = Jud::Config.instance.get_platform_config name
     @repo_config = Jud::Config.instance.get_repo_config @config['repository']
     @language_to_composite = {}
-    $home = Pathname.new(@repo_config['home'])
-    $src = Pathname.new(@config['src'])
-    $build = Pathname.new(@config['build'])
-    $install = Pathname.new(@config['install'])
-    $packdir = Pathname.new(@config['packages'])
+    prefix = Pathname.new @repo_config['dir']
+    $home = path_from_config 'home', (Platform.default_home prefix)
+    $src = path_from_config 'src', (Platform.default_src prefix)
+    $build = path_from_config 'build', (Platform.default_build prefix)
+    $install = path_from_config 'install', (Platform.default_install prefix)
+    $packdir = path_from_config 'packages', (Platform.default_packages prefix)
+    $trash = path_from_config 'trash', (Platform.default_trash prefix)
+  end
+  
+  def path_from_config var, default
+    if @config.has_key? var
+      Pathname.new @config[var]
+    else
+      @config[var] = default
+      Pathname.new default
+    end
   end
   
   def setup composite
