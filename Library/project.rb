@@ -146,7 +146,11 @@ class Project
   
   # Dependencies and conditions from the meta_description and from the options
   def all_depends
-    self.class.build_tool.depends(self) + self.class.depends
+    if self.class.build_tool.nil? then
+      self.class.depends
+    else
+      self.class.build_tool.depends(self) + self.class.depends
+    end
   end
   
   # Useful method to compute dependencies and conditions from the options
@@ -571,6 +575,12 @@ class Project
     def cvs url, modulename
       require 'cvs'
       @scm_tool = CVS.new url, modulename
+    end
+    
+    def eclipse &block
+      require 'eclipse'
+      @build_tool = Eclipse.new
+      @build_tool.instance_eval &block if block_given?
     end
     
     def git url
