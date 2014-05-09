@@ -377,10 +377,10 @@ class Project
     end
     # Create symlinks to /usr
     files_to_link.each do |f|
-      new = f.sub prefix.to_s + '/', ''
-      puts "Link #{new} -> #{f}"
+      old = f.sub usr.to_s, prefix.to_s
+      puts "Link #{f} -> #{old}"
       begin
-        File.symlink f, new
+        File.symlink old, f
       rescue Exception => e
         puts (Platform.red e)
       end
@@ -552,6 +552,12 @@ class Project
     
     def java
       languages << Java
+    end
+    
+    def ant &block
+      require 'Tools/ant'
+      @build_tool = Jud::Tools::Ant.new
+      @build_tool.instance_eval &block if block_given?
     end
     
     def autotools &block

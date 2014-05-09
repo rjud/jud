@@ -3,6 +3,7 @@
 require 'pathname'
 
 $juddir = Pathname.new(__FILE__).realpath.dirname
+$:.unshift $juddir.to_s
 $:.unshift $juddir.join('Library').to_s
 $:.unshift $juddir.join('Platforms').to_s
 $:.unshift $juddir.join('Tools').to_s
@@ -137,6 +138,11 @@ begin
     abort('Please, create a platform with jud create <repository> <platform>')
   end
   
+  require 'project'
+  require 'application'
+  
+  load $juddir.join('Applications', 'tools.rb').to_s
+  
   platform = $general_config['default']
   $platform_config = Jud::Config.instance.config['platforms'][platform]
   
@@ -159,18 +165,17 @@ begin
   end
   
   $:.unshift $home.join('Projects').to_s
+  $:.unshift $home.join('Applications').to_s
   
-  require 'project'
   Dir.glob $home.join('Projects', '*.rb').to_s do |rb|
     load rb
   end
   
-  $:.unshift $home.join('Applications').to_s
-  require 'application'
-
   def load_application appname
     begin
-      load $home.join('Applications', "#{appname.downcase}.rb").to_s
+      if appname != 'Tools' then
+        load $home.join('Applications', "#{appname.downcase}.rb").to_s
+      end
     rescue LoadError => e
       puts (Platform.red "Can't load application #{appname}")
       puts e
