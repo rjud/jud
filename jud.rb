@@ -21,6 +21,7 @@ $tools_config = Jud::Config.instance.config['tools']
 
 AUTO_GEMS =
   [
+   'Antwrap',
    'mechanize',
    'zip'
   ]

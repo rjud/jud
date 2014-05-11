@@ -147,6 +147,7 @@ class Platform
   end
   
   def self.use_proxy? url
+    return false if $general_config['proxy']['host'].empty?
     uri = URI.parse url
     uri.host
     $general_config['proxy']['exceptions'].each do |exception|
