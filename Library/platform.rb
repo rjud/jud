@@ -141,7 +141,10 @@ class Platform
   end
   
   def load_tools
-    @config['tools'].each_key do |name|
+    # Get all tools before loading them. Avoid new key while iterating
+    # (some other tools may be added during loading).
+    tools = @config['tools'].keys
+    tools.each do |name|
       load_tool name
     end
   end
