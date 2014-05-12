@@ -6,16 +6,18 @@ module Jud
 
       class << self
         def name; 'Ant'; end
-      end
-      
-      def extra_configure config
-        puts config
+        
+        def extra_configure config
+        end
       end
       
       Ant.configure
       
+      attr_reader :ant_home
+      
       def initialize
         super()
+        @ant_home = Pathname.new(path).dirname.dirname
       end
       
       def configure src, build, install, build_type, options={}
