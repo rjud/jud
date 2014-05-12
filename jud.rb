@@ -20,11 +20,11 @@ $general_config = Jud::Config.instance.config['main']
 $tools_config = Jud::Config.instance.config['tools']
 
 AUTO_GEMS =
-  [
-   'Antwrap',
-   'mechanize',
-   'zip'
-  ]
+  {
+  'antwrap' => 'Antwrap',
+  'mechanize' => 'mechanize',
+  'zip' => 'zip'
+}
 
 module Kernel
   alias :require_orig :require
@@ -33,11 +33,11 @@ module Kernel
       require_orig name
     rescue LoadError => e
       begin
-        raise if not AUTO_GEMS.include? name
+        raise if not AUTO_GEMS.has_key? name
         # Prepare arguments
         args = ['install', '--verbose']
         args << '--user-install' if not File.writable? Gem.default_dir
-        args << name
+        args << AUTO_GEMS[name]
         # Get the current directory
         dir = File.absolute_path (File.dirname ENV['_'])
         # Set proxy if needed

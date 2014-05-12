@@ -1,11 +1,12 @@
 require 'build_tool'
-require 'Antwrap'
+require 'antwrap'
+require 'javac'
 require 'rexml/document'
 
 include REXML
 
 class Eclipse < BuildTool
-  
+    
   def initialize
     super()
   end

@@ -210,6 +210,7 @@ class Project
     else
       raise Error, "Not implemented"
     end
+    puts (Platform.yellow "JAVA_HOME: #{ENV['JAVA_HOME']}")
   end
   
   def load_binenv
