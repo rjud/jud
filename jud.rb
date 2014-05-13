@@ -39,7 +39,7 @@ module Kernel
         args << '--user-install' if not File.writable? Gem.default_dir
         args << AUTO_GEMS[name]
         # Get the current directory
-        dir = File.absolute_path (File.dirname ENV['_'])
+        dir = File.absolute_path (File.dirname __FILE__)
         # Set proxy if needed
         if Platform.use_proxy? 'https://rubygems.org/' then
           ENV['http_proxy'] = Platform.proxy_url
