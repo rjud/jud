@@ -10,6 +10,7 @@ class Msvc10 < Jud::Win32
       Jud::Win32.create config
       require 'cl10'
       config['tools'][Cl10.name] = Cl10.name
+      config['runtime'] = 'MD'
     end
     
     def languages
