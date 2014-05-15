@@ -189,12 +189,12 @@ class Project
             when Proc
               arg.call Application::project(prj)
             else
-              raise Error, "Not implemented for #{arg.class}"
+              raise Error, "project.rb self.project_evals: Not implemented for #{arg.class}"
             end
         end
       end
     else
-      raise Error, "Not implemented for #{args.class}"
+      raise Error, "project.rb self.project_evals: Not implemented for #{args.class}"
     end
   end
   
@@ -207,8 +207,10 @@ class Project
       puts (Platform.yellow "LD_LIBRARY_PATH: #{ENV['LD_LIBRARY_PATH']}")
     elsif Platform.is_darwin? then
       puts (Platform.yellow "DYLD_LIBRARY_PATH: #{ENV['DYLD_LIBRARY_PATH']}")
+    elsif Platform.is_windows? then
+      # Nothing to do. It is PATH.
     else
-      raise Error, "Not implemented"
+      raise Error, "project.rb load_end: Not implemented"
     end
     puts (Platform.yellow "JAVA_HOME: #{ENV['JAVA_HOME']}")
   end
