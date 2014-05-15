@@ -5,12 +5,14 @@ class Project
   class Error < RuntimeError; end
   
   attr_reader :name, :packdir, :scm_tool, :config
+  attr_accessor :repository
   
   def initialize options={}
     self.class.languages.uniq!
     @options = options
     @name = self.class.name
     @scm_tool = self.class.scm_tool
+    @repository = self.class.repository
     @app_config = $platform_config['projects']
     @config = @app_config[@name][options[:application]]
     @install = prefix
@@ -110,7 +112,7 @@ class Project
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
       depend.install_dependencies
-      load_env
+      depend.load_env
       build_types.each do |bt|
         depend.checkout_this bt
         depend.patch_this bt
@@ -302,14 +304,16 @@ class Project
   def get_version
     if @options.has_key? :version then
       @options[:version]
-    else
+    elsif @scm_tool
       @scm_tool.get_revision (srcdir build_types[0]), @options
+    else
+      nil
     end
   end
   
   def register_this
     # Register version
-    @config['version'] = get_version
+    @config['version'] = get_version if get_version
   end
   
   def trash_this
@@ -446,7 +450,7 @@ class Project
   end
   
   def upload_this_after_submit? status
-    if self.class.repository.nil? then
+    if @repository.nil? then
       false
     else
       case status
@@ -478,7 +482,7 @@ class Project
   end
   
   def upload_this?
-    self.class.repository and @options.has_key? :version
+    @repository and @options.has_key? :version
   end
   
   def pack_this
@@ -492,14 +496,14 @@ class Project
   end
   
   def download_this
-    self.class.repository.download packfile
+    @repository.download packfile
   end
   
   def upload_this
-    if self.class.repository.exist? packfile then
-      self.class.repository.delete packfile
+    if @repository.exist? packfile then
+      @repository.delete packfile
     end
-    self.class.repository.upload packfile, @options
+    @repository.upload packfile, @options
   end
   
   # Dependencies after applying conditions
