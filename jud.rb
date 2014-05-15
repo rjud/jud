@@ -56,7 +56,7 @@ module Kernel
             require_orig name
             puts (Platform.blue "Gem #{name} successfully installed")
           rescue LoadError => e
-            puts (Platform.red "Can't install gem #{name}")
+            puts (Platform.red "Can't install gem #{name}:\n #{e}")
           end
         else
           puts (Platform.red ex)
