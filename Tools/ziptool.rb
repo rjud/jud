@@ -15,9 +15,16 @@ class ZipTool < PackTool
   end
   
   def pack_impl filename, directory
+    File.delete filename if File.exists? filename
     Zip::ZipFile.open(filename.to_s, Zip::ZipFile::CREATE) do |zipfile|
-      Dir[directory.join('**', '**')].each do |file|
-        zipfile.add(file.sub(directory.to_s + '/', ''), file)
+      Dir[directory.join('**', '**')].each do |filename|
+        if File.directory? filename
+          zipfile.mkdir filename.sub(directory.to_s + '/', '')
+        else
+          zipfile.get_output_stream filename.sub(directory.to_s + '/', '') do |out|
+            out.write File.binread filename
+          end
+        end
       end
     end
   end
