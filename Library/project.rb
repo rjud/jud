@@ -104,6 +104,7 @@ class Project
     
   def install_dependency claz
     depend = project claz.name.to_sym
+    depend.install_dependencies
     if depend.packfile.exist? then
       depend.unpack_this
     elsif depend.class.repository and depend.class.repository.exist? depend.packfile then
@@ -111,7 +112,6 @@ class Project
       depend.unpack_this
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
-      depend.install_dependencies
       depend.load_env
       build_types.each do |bt|
         depend.checkout_this bt
@@ -407,6 +407,8 @@ class Project
       File.unlink f
     end
     # Save the list of files
+    dir = Pathname.new(filesname).dirname.to_s
+    FileUtils.mkdir_p dir unless File.exists? dir
     File.open filesname, 'w' do |file|
       all_files.each do |f|
         file.write("#{f}\n")
