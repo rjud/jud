@@ -254,8 +254,8 @@ class Project
       else
         @scm_tool.checkout src, @options
       end
+      @config.delete 'patches'
     end
-    @config.delete 'patches'
   end
   
   def update_this build_type
@@ -501,7 +501,7 @@ class Project
   
   def unpack_this
     puts Platform.blue("Unpack #{packfile.basename.to_s} to #{@install.to_s}")
-    pack_tool.unpack packfile, @install
+    PackTool.unpack pack_tool, packfile, @install
   end
   
   def download_this
