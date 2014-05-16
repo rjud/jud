@@ -29,6 +29,8 @@ class CMake < BuildTool
   end
   
   def configure src, build, install, build_type, options={}
+    cmakecache = File.join(build, 'CMakeCache.txt').to_s
+    File.delete cmakecache if File.exists? cmakecache
     cmd = '"' + path + '"'
     if $platform_config.include? 'CMake Generator' then
       cmd += ' -G "' + $platform_config['CMake Generator'] + '"' 
