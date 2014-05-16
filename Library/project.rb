@@ -255,6 +255,7 @@ class Project
         @scm_tool.checkout src, @options
       end
     end
+    @config.delete 'patches'
   end
   
   def update_this build_type
@@ -324,11 +325,19 @@ class Project
     build_types.each do |bt|
       if (builddir bt).directory? then
         new_name = builddir(bt).basename.to_s + '-' + timestamp
-        FileUtils.mv (builddir bt), new_name, :verbose => true 
+        begin
+          FileUtils.mv (builddir bt), new_name, :verbose => true 
+        rescue Errno::EACCES => e
+          puts (Platform.red e)
+        end
       end
       if (srcdir bt).directory? then
         new_name = srcdir(bt).basename.to_s + '-' + timestamp
-        FileUtils.mv (srcdir bt), new_name, :verbose => true
+        begin
+          FileUtils.mv (srcdir bt), new_name, :verbose => true
+        rescue Errno::EACCES => e
+          puts (Platform.red e)
+        end
       end
     end
     @config.delete 'patches'
