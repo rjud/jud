@@ -215,6 +215,9 @@ class Project
       raise Error, "project.rb load_end: Not implemented"
     end
     puts (Platform.yellow "JAVA_HOME: #{ENV['JAVA_HOME']}")
+    puts (Platform.yellow "INCLUDE: #{ENV['INCLUDE']}")
+    puts (Platform.yellow "LIB: #{ENV['LIB']}")
+    puts (Platform.yellow "LIBPATH: #{ENV['LIBPATH']}")
   end
   
   def load_binenv

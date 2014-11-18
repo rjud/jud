@@ -36,7 +36,12 @@ class Tool
           path = Platform.find_executable basename, optional=true
           if path.nil? then
             puts (Platform.red "Can't find #{name}. I will compile it for you")
-            Application.build 'Tools', projectname
+            begin
+              Application.build 'Tools', projectname
+            rescue 
+              puts (Platform.red "I can't compile it. I am giving up !")
+              return
+            end
             add_to_path = project(projectname).prefix.to_s
             if Platform.is_windows? then
               ENV['PATH'] = add_to_path << ";" << ENV['PATH']

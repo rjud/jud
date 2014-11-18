@@ -34,7 +34,7 @@ class SVN < SCMTool
   def get_revision src, options = {}
     dir = File.dirname path
     bin = File.join(dir, if Platform.is_windows? then 'svnversion.exe' else 'svnversion' end)
-    cmd = "#{bin}"
+    cmd = "\"#{bin}\""
     exit_status = Platform.execute cmd, {:wd => src, :keep => '[0-9a-z]'}.merge(options)
     exit_status[1].last
   end
