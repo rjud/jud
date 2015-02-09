@@ -453,7 +453,7 @@ class Project
     end
     
     def java
-      languages << Java
+      languages << Jud::Java
     end
     
     def autotools &block

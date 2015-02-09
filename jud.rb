@@ -31,7 +31,12 @@ module Kernel
         args = ['install', '--verbose']
         args << '--user-install' if not File.writable? Gem.default_dir
         args << name
-        dir = File.absolute_path (File.dirname ENV['_'])
+		path = ENV['_']
+		if path
+		  dir = File.absolute_path (File.dirname ENV['_'])
+		else
+		  dir = '' # Find the path to ruby under windows
+		end
         args_s = ''
         args.each { |arg| args_s += "#{arg} " }
         puts (Platform.blue "#{dir}> gem #{args_s}")

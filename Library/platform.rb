@@ -173,7 +173,7 @@ class Platform
   def self.is_linux?; RUBY_PLATFORM =~ /linux/; end
   
   def self.is_32?; RUBY_PLATFORM =~ /i386/; end
-  def self.is_64?; RUBY_PLATFORM =~ /x86_64/; end
+  def self.is_64?; RUBY_PLATFORM =~ /x86_64/ or RUBY_PLATFORM =~ /x64/; end
   
   def build_name
     

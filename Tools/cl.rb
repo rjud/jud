@@ -47,11 +47,19 @@ class Cl < Jud::C::Compiler
     end
     
     def get_vs_install_dir
-      return Pathname.new reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VS7', version)
-    end
+	  begin
+        return Pathname.new reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VS7', version)
+      rescue Win32::Registry::Error
+	    return Pathname.new reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VS7', version)
+	  end
+	end
     
     def get_vc_install_dir
-      return Pathname.new reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', version)
+	  begin
+        return Pathname.new reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', version)
+      rescue Win32::Registry::Error
+	    return Pathname.new reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', version)
+	  end
     end
     
   end
