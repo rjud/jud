@@ -9,8 +9,13 @@ class Patch < Tool
   end
   
   def patch srcdir, file
-    cmd = "\"#{path}\" -p1 < #{file}"
-    Platform.execute cmd, wd: srcdir
+    arguments = file.split('.')
+    cmd = "\"#{path}\" -p#{arguments[2]} < #{file}"
+    begin
+      Platform.execute cmd, wd: srcdir
+    rescue
+      # Try to convert EOL
+    end
   end
   
 end

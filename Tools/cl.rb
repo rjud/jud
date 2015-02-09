@@ -19,12 +19,14 @@ class Cl < Jud::C::Compiler
       configure_directory config, 'VSCommonToolsDir', lambda { get_vs_common_tools_dir }
       configure_directory config, 'WindowsSdkDir', lambda { get_windows_sdk_dir }
       configure_directory config, 'FrameworkDir', lambda { get_framework_dir }
+      configure_directory config, 'AdditionalDllDir', lambda { get_additional_dll_dir }
       # Get the final configuration
       @vc_install_dir = get_directory config, 'VCInstallDir'
       @vs_install_dir = get_directory config, 'VSInstallDir'
       @vs_common_tools_dir = get_directory config, 'VSCommonToolsDir'
       @windows_sdk_dir = get_directory config, 'WindowsSdkDir'
       @framework_dir = get_directory config, 'FrameworkDir'
+      @additional_dll_dir = get_directory config, 'AdditionalDllDir'
       # Load environment
       # Microsoft Visual Studio
       path = File.join(@vs_install_dir, 'Common7', 'IDE')
@@ -32,14 +34,23 @@ class Cl < Jud::C::Compiler
       path << ';' << @vs_common_tools_dir
       # Microsoft Visual Compiler
       path << ';' << File.join(@vc_install_dir, 'BIN')
+      # MSPDB DLLs (for CMake 3)
+      path << ';' << @additional_dll_dir
       # We may add VCPackages to path
       ENV['INCLUDE'] = File.join(@vc_install_dir, 'INCLUDE')
       ENV['LIB'] = File.join(@vc_install_dir, 'LIB')
       ENV['LIBPATH'] = File.join(@vc_install_dir, 'LIB')
       # Microsoft SDK
-      path << ";" << File.join(@windows_sdk_dir, 'bin')
-      ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include')
-      ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib')
+      if @windows_sdk_dir then
+        path << ";" << File.join(@windows_sdk_dir, 'bin')
+        path << ";" << File.join(@windows_sdk_dir, 'bin', 'x86') # WIN7 + MSVC11
+        ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include')
+        ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include', 'shared') # WIN7 + MSVC11
+        ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include', 'winrt') # WIN7 + MSVC11
+        ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include', 'um') # WIN7 + MSVC11
+        ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib')
+        ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib', 'win8', 'um', 'x86') # WIN7 + MSVC11
+      end
       # Framework .NET (to have msbuild)
       path << ";" << @framework_dir
       # Set new environment
@@ -60,6 +71,10 @@ class Cl < Jud::C::Compiler
       rescue Win32::Registry::Error
 	    return Pathname.new reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', version)
 	  end
+    end
+    
+    def get_additional_dll_dir # Only for CMake
+      return Pathname.new reg_query('SOFTWARE\Wow6432Node\Microsoft\AppEnv\\' + version, 'AdditionalDllsFolder')
     end
     
   end

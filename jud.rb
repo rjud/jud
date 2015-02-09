@@ -1,24 +1,30 @@
-#!/usr/bin/env ruby -W0
+#!/usr/bin/env ruby
 
 require 'pathname'
 
 $juddir = Pathname.new(__FILE__).realpath.dirname
+$:.unshift $juddir.to_s
 $:.unshift $juddir.join('Library').to_s
 $:.unshift $juddir.join('Platforms').to_s
 $:.unshift $juddir.join('Tools').to_s
 
 require 'config'
 require 'platform'
+require 'project'
 require 'rubygems/gem_runner'
 require 'utilities'
 
 at_exit { Jud::Config.instance.save }
 
+$general_config = Jud::Config.instance.config['main']
+$tools_config = Jud::Config.instance.config['tools']
+
 AUTO_GEMS =
-  [
-   'mechanize',
-   'zip'
-  ]
+  {
+  'antwrap' => 'Antwrap',
+  'mechanize' => 'mechanize',
+  'zip' => 'zip'
+}
 
 module Kernel
   alias :require_orig :require
@@ -27,27 +33,30 @@ module Kernel
       require_orig name
     rescue LoadError => e
       begin
-        raise if not AUTO_GEMS.include? name
+        raise if not AUTO_GEMS.has_key? name
+        # Prepare arguments
         args = ['install', '--verbose']
         args << '--user-install' if not File.writable? Gem.default_dir
-        args << name
-		path = ENV['_']
-		if path
-		  dir = File.absolute_path (File.dirname ENV['_'])
-		else
-		  dir = '' # Find the path to ruby under windows
-		end
-        args_s = ''
-        args.each { |arg| args_s += "#{arg} " }
+        args << AUTO_GEMS[name]
+        # Get the current directory
+        dir = File.absolute_path (File.dirname __FILE__)
+        # Set proxy if needed
+        if Platform.use_proxy? 'https://rubygems.org/' then
+          ENV['http_proxy'] = Platform.proxy_url
+        end
+        # Run the gem command
+        args_s = ''.tap { |s| args.each { |arg| s.concat "#{arg} " } }
         puts (Platform.blue "#{dir}> gem #{args_s}")
         Gem::GemRunner.new.run args
+        # Unset proxy
+        ENV.delete 'http_proxy'
       rescue Gem::SystemExitException => ex
         if ex.exit_code == 0 then
           begin
             require_orig name
             puts (Platform.blue "Gem #{name} successfully installed")
           rescue LoadError => e
-            puts (Platform.red "Can't install gem #{name}")
+            puts (Platform.red "Can't install gem #{name}:\n #{e}")
           end
         else
           puts (Platform.red ex)
@@ -57,9 +66,6 @@ module Kernel
     end
   end
 end
-
-$general_config = Jud::Config.instance.config['main']
-$tools_config = Jud::Config.instance.config['tools']
 
 require 'git'
 require 'svn'
@@ -93,7 +99,7 @@ when 'download' then
           if klass.configured? then
             puts (Platform.green "Try to download with #{klass.name}")
             scm = klass.new url
-            status = scm.checkout home, { :safe => true }
+            status = scm.checkout home
             throw :download_ok if status[0].success?
           end
         rescue Platform::Error => e
@@ -133,6 +139,11 @@ begin
     abort('Please, create a platform with jud create <repository> <platform>')
   end
   
+  require 'project'
+  require 'application'
+  
+  load $juddir.join('Applications', 'tools.rb').to_s
+  
   platform = $general_config['default']
   $platform_config = Jud::Config.instance.config['platforms'][platform]
   
@@ -155,18 +166,17 @@ begin
   end
   
   $:.unshift $home.join('Projects').to_s
+  $:.unshift $home.join('Applications').to_s
   
-  require 'project'
   Dir.glob $home.join('Projects', '*.rb').to_s do |rb|
     load rb
   end
   
-  $:.unshift $home.join('Applications').to_s
-  require 'application'
-
   def load_application appname
     begin
-      load $home.join('Applications', "#{appname.downcase}.rb").to_s
+      if appname != 'Tools' then
+        load $home.join('Applications', "#{appname.downcase}.rb").to_s
+      end
     rescue LoadError => e
       puts (Platform.red "Can't load application #{appname}")
       puts e
@@ -272,6 +282,6 @@ begin
     app.upload_this
   end
   
-rescue Platform::Error, Tool::Error => e
+rescue Platform::Error, Project::Error, Tool::Error => e
   puts (Platform.red e)
 end

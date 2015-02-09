@@ -9,9 +9,10 @@ class Tool
     attr_reader :path
     
     def basename; name.downcase; end
+    def projectname; name; end
     
     def variants; return [Platform::UNIX, Platform::WIN32]; end
-        
+    
     def load_path; return true; end
     
     def get_config
@@ -31,7 +32,26 @@ class Tool
       config = get_config
       # Configure path of this tool if needed
       if load_path then
-        configure_property config, 'path', lambda { Platform.find_executable basename, optional=true }
+        configure_property config, 'path', lambda {
+          path = Platform.find_executable basename, optional=true
+          if path.nil? then
+            puts (Platform.red "Can't find #{name}. I will compile it for you")
+            begin
+              Application.build 'Tools', projectname
+            rescue 
+              puts (Platform.red "I can't compile it. I am giving up !")
+              return
+            end
+            add_to_path = project(projectname).prefix.to_s
+            if Platform.is_windows? then
+              ENV['PATH'] = add_to_path << ";" << ENV['PATH']
+            else
+              ENV['PATH'] = add_to_path << ":" << ENV['PATH']
+            end
+            path = Platform.find_executable basename, optional=true
+          end
+          path
+        }
         @path = get_directory config, 'path'
       end
       # Configure extra properties

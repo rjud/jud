@@ -5,12 +5,14 @@ class Project
   class Error < RuntimeError; end
   
   attr_reader :name, :packdir, :scm_tool, :config
+  attr_accessor :repository
   
   def initialize options={}
     self.class.languages.uniq!
     @options = options
     @name = self.class.name
     @scm_tool = self.class.scm_tool
+    @repository = self.class.repository
     @app_config = $platform_config['projects']
     @config = @app_config[@name][options[:application]]
     @install = prefix
@@ -102,6 +104,7 @@ class Project
     
   def install_dependency claz
     depend = project claz.name.to_sym
+    depend.install_dependencies
     if depend.packfile.exist? then
       depend.unpack_this
     elsif depend.class.repository and depend.class.repository.exist? depend.packfile then
@@ -109,8 +112,7 @@ class Project
       depend.unpack_this
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
-      depend.install_dependencies
-      load_env
+      depend.load_env
       build_types.each do |bt|
         depend.checkout_this bt
         depend.patch_this bt
@@ -122,7 +124,9 @@ class Project
       depend.upload_this if depend.upload_this?
       puts Platform.yellow("[#{name}] dependency #{depend.name} is installed")
     end
+    depend.deploy_this if depend.deploy_this?
     depend.register_this
+    depend.trash_this
   end
   
   def to_be_installed? depend, cond
@@ -144,7 +148,11 @@ class Project
   
   # Dependencies and conditions from the meta_description and from the options
   def all_depends
-    self.class.build_tool.depends(self) + self.class.depends
+    if self.class.build_tool.nil? then
+      self.class.depends
+    else
+      self.class.build_tool.depends(self) + self.class.depends
+    end
   end
   
   # Useful method to compute dependencies and conditions from the options
@@ -153,7 +161,7 @@ class Project
     when Hash
       [].tap do |depends|
         args.each do |prj, arg|
-          depends << [prj, cond]
+          depends << [Application::project(prj), cond]
         end
       end
     else
@@ -183,12 +191,12 @@ class Project
             when Proc
               arg.call Application::project(prj)
             else
-              raise Error, "Not implemented for #{arg.class}"
+              raise Error, "project.rb self.project_evals: Not implemented for #{arg.class}"
             end
         end
       end
     else
-      raise Error, "Not implemented for #{args.class}"
+      raise Error, "project.rb self.project_evals: Not implemented for #{args.class}"
     end
   end
   
@@ -201,9 +209,15 @@ class Project
       puts (Platform.yellow "LD_LIBRARY_PATH: #{ENV['LD_LIBRARY_PATH']}")
     elsif Platform.is_darwin? then
       puts (Platform.yellow "DYLD_LIBRARY_PATH: #{ENV['DYLD_LIBRARY_PATH']}")
+    elsif Platform.is_windows? then
+      # Nothing to do. It is PATH.
     else
-      raise Error, "Not implemented"
+      raise Error, "project.rb load_end: Not implemented"
     end
+    puts (Platform.yellow "JAVA_HOME: #{ENV['JAVA_HOME']}")
+    puts (Platform.yellow "INCLUDE: #{ENV['INCLUDE']}")
+    puts (Platform.yellow "LIB: #{ENV['LIB']}")
+    puts (Platform.yellow "LIBPATH: #{ENV['LIBPATH']}")
   end
   
   def load_binenv
@@ -243,6 +257,7 @@ class Project
       else
         @scm_tool.checkout src, @options
       end
+      @config.delete 'patches'
     end
   end
   
@@ -293,13 +308,115 @@ class Project
   def get_version
     if @options.has_key? :version then
       @options[:version]
-    else
+    elsif @scm_tool
       @scm_tool.get_revision (srcdir build_types[0]), @options
+    else
+      nil
     end
   end
   
   def register_this
-    @config['version'] = get_version
+    # Register version
+    @config['version'] = get_version if get_version
+  end
+  
+  def trash_this
+    puts (Platform.blue "Cleaning...")
+    timestamp = DateTime.now.strftime '%Y%m%d%H%M%S%L'
+    FileUtils.mkdir_p $trash unless $trash.directory?
+    Dir.chdir $trash
+    build_types.each do |bt|
+      if (builddir bt).directory? then
+        new_name = builddir(bt).basename.to_s + '-' + timestamp
+        begin
+          FileUtils.mv (builddir bt), new_name, :verbose => true 
+        rescue Errno::EACCES => e
+          puts (Platform.red e)
+        end
+      end
+      if (srcdir bt).directory? then
+        new_name = srcdir(bt).basename.to_s + '-' + timestamp
+        begin
+          FileUtils.mv (srcdir bt), new_name, :verbose => true
+        rescue Errno::EACCES => e
+          puts (Platform.red e)
+        end
+      end
+    end
+    @config.delete 'patches'
+  end
+  
+  def deploy_this?
+    not Platform.is_windows?
+  end
+
+  def deploy_this
+    # Go to /usr
+    usr = $install.join 'usr'
+    FileUtils.mkdir_p usr.to_s if not usr.directory?
+    Dir.chdir usr.to_s
+    # Print a message
+    puts (Platform.blue "Deploy #{build_name} to #{usr.to_s}")
+    # Name of the files file
+    filesname = prefix.dirname.join (prefix.basename.to_s + '.files')
+    # Get the files already installed
+    installed_files = [].tap do |files|
+      if File.exists? filesname then
+        File.open filesname, 'r' do |file|
+          files.concat file.readlines.map{ |l| l.chomp }
+        end
+      end
+    end
+    # Check that they are really installed
+    installed_files.delete_if { |f| not File.symlink? f }
+    # Check
+    all_files = []
+    alert_files = []
+    Dir[prefix.join('**', '**')].each do |f|
+      new = f.sub prefix.to_s + '/', ''
+      new_abs = usr.join(new).to_s
+      if File.directory? f then
+        FileUtils.mkdir_p new if not File.directory? new
+      else
+        all_files << new_abs
+        if File.exists? new and not installed_files.include? new_abs then
+          alert_files << new_abs
+        end
+      end
+    end
+    files_to_link = all_files - installed_files
+    files_to_unlink = installed_files - all_files
+    # Raise an exception if alert_files is not empty
+    if alert_files.size > 0 then
+      msg = "The following files have been installed by a previous package:\n"
+      alert_files.each do |f|
+        msg += "#{f}\n"
+      end
+      raise Error, msg
+    end
+    # Create symlinks to /usr
+    files_to_link.each do |f|
+      old = f.sub usr.to_s, prefix.to_s
+      puts "Link #{f} -> #{old}"
+      begin
+        File.symlink old, f
+      rescue Exception => e
+        puts (Platform.red e)
+      end
+    end
+    # Remove symlinks from /usr
+    files_to_unlink.each do |f|
+      puts "Unlink #{f}"
+      File.unlink f
+    end
+    # Save the list of files
+    dir = Pathname.new(filesname).dirname.to_s
+    FileUtils.mkdir_p dir unless File.exists? dir
+    File.open filesname, 'w' do |file|
+      all_files.each do |f|
+        file.write("#{f}\n")
+      end
+    end
   end
   
   def install
@@ -314,6 +431,7 @@ class Project
     end
     pack_this if pack_this?
     upload_this if upload_this?
+    deploy_this if deploy_this?
     register_this
   end
   
@@ -341,11 +459,12 @@ class Project
     pack_this if pack_this?
     # Upload if good
     upload_this if upload_this_after_submit? status
+    deploy_this if deploy_this?
     register_this
   end
   
   def upload_this_after_submit? status
-    if self.class.repository.nil? then
+    if @repository.nil? then
       false
     else
       case status
@@ -371,13 +490,13 @@ class Project
   def packfile
     Pathname.new(@packdir).join packfilename
   end
-  
+    
   def pack_this?
     true
   end
   
   def upload_this?
-    self.class.repository and @options.has_key? :version
+    @repository and @options.has_key? :version
   end
   
   def pack_this
@@ -387,18 +506,18 @@ class Project
   
   def unpack_this
     puts Platform.blue("Unpack #{packfile.basename.to_s} to #{@install.to_s}")
-    pack_tool.unpack packfile, @install
+    PackTool.unpack pack_tool, packfile, @install
   end
   
   def download_this
-    self.class.repository.download packfile
+    @repository.download packfile
   end
   
   def upload_this
-    if self.class.repository.exist? packfile then
-      self.class.repository.delete packfile
+    if @repository.exist? packfile then
+      @repository.delete packfile
     end
-    self.class.repository.upload packfile, @options
+    @repository.upload packfile, @options
   end
   
   # Dependencies after applying conditions
@@ -456,6 +575,12 @@ class Project
       languages << Jud::Java
     end
     
+    def ant &block
+      require 'Tools/ant'
+      @build_tool = Jud::Tools::Ant.new
+      @build_tool.instance_eval &block if block_given?
+    end
+    
     def autotools &block
       require 'autotools'
       @build_tool = AutoTools.new
@@ -477,6 +602,12 @@ class Project
     def cvs url, modulename
       require 'cvs'
       @scm_tool = CVS.new url, modulename
+    end
+    
+    def eclipse &block
+      require 'eclipse'
+      @build_tool = Eclipse.new
+      @build_tool.instance_eval &block if block_given?
     end
     
     def git url
