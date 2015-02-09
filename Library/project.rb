@@ -242,7 +242,7 @@ class Project
         elsif Platform.is_darwin? then
           ENV['DYLD_LIBRARY_PATH'] = path << ":" << ENV['DYLD_LIBRARY_PATH']
         else
-          raise Error, "Not implemented"
+          raise Error, "project.rb load_libenv: Not implemented"
         end
       end
     end
@@ -572,6 +572,7 @@ class Project
     end
     
     def java
+	  require 'java'
       languages << Jud::Java
     end
     

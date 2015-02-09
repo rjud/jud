@@ -6,10 +6,13 @@ class Ant < Project
   
   def build_this bt
     if Platform.is_windows? then
-      raise Error, "Not implemented"
+	  src = (srcdir bt).join 'dist'
+	  FileUtils.mkdir_p src.join 'dist'
+	  #Platform.execute "bootstrap.bat", :wd => (srcdir bt)
+	  Platform.execute "build.bat", :wd => (srcdir bt)
     else
-      #Platform.execute "./bootstrap.sh", :wd => (srcdir bt)
-      #Platform.execute "./build.sh", :wd => (srcdir bt)
+      Platform.execute "./bootstrap.sh", :wd => (srcdir bt)
+      Platform.execute "./build.sh", :wd => (srcdir bt)
     end
   end
   
