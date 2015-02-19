@@ -136,7 +136,10 @@ class Project
   def install_dependency? depend, cond
     return false if not to_be_installed? depend, cond
     prf = Application::project(depend.name.to_sym).prefix
-    return true if not File.directory? prf
+    if not File.directory? prf
+	  puts Platform.red("[#{name}] dependency #{depend.name} not found in directory #{prf}")
+	  return true 
+	end
     return false
   end
   
