@@ -5,12 +5,14 @@ class Project
   class Error < RuntimeError; end
   
   attr_reader :name, :packdir, :scm_tool, :config
+  attr_accessor :repository
   
   def initialize options={}
     self.class.languages.uniq!
     @options = options
     @name = self.class.name
     @scm_tool = self.class.scm_tool
+    @repository = self.class.repository
     @app_config = $platform_config['projects']
     @config = @app_config[@name][options[:application]]
     @install = prefix
@@ -102,6 +104,7 @@ class Project
     
   def install_dependency claz
     depend = project claz.name.to_sym
+    depend.install_dependencies
     if depend.packfile.exist? then
       depend.unpack_this
     elsif depend.class.repository and depend.class.repository.exist? depend.packfile then
@@ -109,8 +112,7 @@ class Project
       depend.unpack_this
     else
       puts Platform.yellow('[' + name + "] install dependency " + depend.name)
-      depend.install_dependencies
-      load_env
+      depend.load_env
       build_types.each do |bt|
         depend.checkout_this bt
         depend.patch_this bt
@@ -134,7 +136,10 @@ class Project
   def install_dependency? depend, cond
     return false if not to_be_installed? depend, cond
     prf = Application::project(depend.name.to_sym).prefix
-    return true if not File.directory? prf
+    if not File.directory? prf
+	  puts Platform.red("[#{name}] dependency #{depend.name} not found in directory #{prf}")
+	  return true 
+	end
     return false
   end
   
@@ -189,12 +194,12 @@ class Project
             when Proc
               arg.call Application::project(prj)
             else
-              raise Error, "Not implemented for #{arg.class}"
+              raise Error, "project.rb self.project_evals: Not implemented for #{arg.class}"
             end
         end
       end
     else
-      raise Error, "Not implemented for #{args.class}"
+      raise Error, "project.rb self.project_evals: Not implemented for #{args.class}"
     end
   end
   
@@ -207,13 +212,20 @@ class Project
       puts (Platform.yellow "LD_LIBRARY_PATH: #{ENV['LD_LIBRARY_PATH']}")
     elsif Platform.is_darwin? then
       puts (Platform.yellow "DYLD_LIBRARY_PATH: #{ENV['DYLD_LIBRARY_PATH']}")
+    elsif Platform.is_windows? then
+      # Nothing to do. It is PATH.
     else
-      raise Error, "Not implemented"
+      raise Error, "project.rb load_end: Not implemented"
     end
     puts (Platform.yellow "JAVA_HOME: #{ENV['JAVA_HOME']}")
     puts (Platform.yellow "CLASSPATH: #{ENV['CLASSPATH']}")
+    if Platform.is_windows? then
+      puts (Platform.yellow "INCLUDE: #{ENV['INCLUDE']}")
+      puts (Platform.yellow "LIB: #{ENV['LIB']}")
+      puts (Platform.yellow "LIBPATH: #{ENV['LIBPATH']}")
+    end
   end
-    
+  
   def load_binenv
     self.class.binenv.each do |args|
       Project.project_evals(args).each do |path|
@@ -236,7 +248,7 @@ class Project
         elsif Platform.is_darwin? then
           ENV['DYLD_LIBRARY_PATH'] = path << ":" << ENV['DYLD_LIBRARY_PATH']
         else
-          raise Error, "Not implemented"
+          raise Error, "project.rb load_libenv: Not implemented"
         end
       end
     end
@@ -251,6 +263,7 @@ class Project
       else
         @scm_tool.checkout src, @options
       end
+      @config.delete 'patches'
     end
   end
   
@@ -301,14 +314,16 @@ class Project
   def get_version
     if @options.has_key? :version then
       @options[:version]
-    else
+    elsif @scm_tool
       @scm_tool.get_revision (srcdir build_types[0]), @options
+    else
+      nil
     end
   end
   
   def register_this
     # Register version
-    @config['version'] = get_version
+    @config['version'] = get_version if get_version
   end
   
   def trash_this
@@ -319,11 +334,19 @@ class Project
     build_types.each do |bt|
       if (builddir bt).directory? then
         new_name = builddir(bt).basename.to_s + '-' + timestamp
-        FileUtils.mv (builddir bt), new_name, :verbose => true 
+        begin
+          FileUtils.mv (builddir bt), new_name, :verbose => true 
+        rescue Errno::EACCES => e
+          puts (Platform.red e)
+        end
       end
       if (srcdir bt).directory? then
         new_name = srcdir(bt).basename.to_s + '-' + timestamp
-        FileUtils.mv (srcdir bt), new_name, :verbose => true
+        begin
+          FileUtils.mv (srcdir bt), new_name, :verbose => true
+        rescue Errno::EACCES => e
+          puts (Platform.red e)
+        end
       end
     end
     @config.delete 'patches'
@@ -393,6 +416,8 @@ class Project
       File.unlink f
     end
     # Save the list of files
+    dir = Pathname.new(filesname).dirname.to_s
+    FileUtils.mkdir_p dir unless File.exists? dir
     File.open filesname, 'w' do |file|
       all_files.each do |f|
         file.write("#{f}\n")
@@ -445,7 +470,7 @@ class Project
   end
   
   def upload_this_after_submit? status
-    if self.class.repository.nil? then
+    if @repository.nil? then
       false
     else
       case status
@@ -477,7 +502,7 @@ class Project
   end
   
   def upload_this?
-    self.class.repository and @options.has_key? :version
+    @repository and @options.has_key? :version
   end
   
   def pack_this
@@ -487,18 +512,18 @@ class Project
   
   def unpack_this
     puts Platform.blue("Unpack #{packfile.basename.to_s} to #{@install.to_s}")
-    pack_tool.unpack packfile, @install
+    PackTool.unpack pack_tool, packfile, @install
   end
   
   def download_this
-    self.class.repository.download packfile
+    @repository.download packfile
   end
   
   def upload_this
-    if self.class.repository.exist? packfile then
-      self.class.repository.delete packfile
+    if @repository.exist? packfile then
+      @repository.delete packfile
     end
-    self.class.repository.upload packfile, @options
+    @repository.upload packfile, @options
   end
   
   # Dependencies after applying conditions
@@ -553,7 +578,8 @@ class Project
     end
     
     def java
-      languages << Java
+	  require 'java'
+      languages << Jud::Java
     end
     
     def ant &block

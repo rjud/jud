@@ -15,4 +15,15 @@ class PackTool < Tool
     pack_impl filename, directory
   end
   
+  def self.unpack tool, filename, destination
+    case filename.extname
+    when '.zip'
+      ZipTool.new.unpack filename, destination
+    when '.gz'
+      Tarball.new('tar.gz').unpack filename, destination
+    else
+      tool.unpack filename, destination
+    end
+  end
+  
 end

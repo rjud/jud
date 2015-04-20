@@ -5,5 +5,5 @@ def reg_query path, name
     type, data = reg.read(name)
     return data
   end
-  abort('No value for reg query ' << path << " /v " << name)
+  abort("[" << name << '] No value for reg query ' << path)
 end

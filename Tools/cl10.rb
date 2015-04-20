@@ -27,9 +27,15 @@ class Cl10 < Cl
     end
     
     def get_framework_dir
-      dir = reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', 'FrameworkDir32')
-      ver = reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', 'FrameworkVer32')
-      return File.join(dir, ver)
+	  begin
+        dir = reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', 'FrameworkDir32')
+        ver = reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', 'FrameworkVer32')
+        return File.join(dir, ver)
+      rescue
+	    dir = reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', 'FrameworkDir64')
+        ver = reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', 'FrameworkVer64')
+        return File.join(dir, ver)
+	  end
     end
     
   end
