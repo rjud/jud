@@ -5,12 +5,15 @@ class Ant < Project
   def build_types; [:Release]; end
   
   def build_this bt
+    old_classpath = ENV['CLASSPATH']
+    ENV.delete 'CLASSPATH'
     if Platform.is_windows? then
       raise Error, "Not implemented"
     else
-      #Platform.execute "./bootstrap.sh", :wd => (srcdir bt)
-      #Platform.execute "./build.sh", :wd => (srcdir bt)
+      Platform.execute "./bootstrap.sh", :wd => (srcdir bt)
+      Platform.execute "./build.sh", :wd => (srcdir bt)
     end
+    ENV['CLASSPATH'] = old_classpath
   end
   
   def install_this bt

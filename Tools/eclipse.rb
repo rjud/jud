@@ -13,7 +13,22 @@ class Array # Deprecated method redefined for antwrap
 end
 
 class Eclipse < BuildTool
+
+  class << self
     
+    def load_path; false; end
+    
+    def extra_configure config
+      ant_home = Jud::Tools::Ant.new.ant_home
+      # Conflict with Ant
+      #ENV['CLASSPATH'] = ant_home.join('lib', 'ant.jar').to_s + ':' + ant_home.join('lib', 'ant-launcher.jar').to_s + ':' + ant_home.join('share', 'java', 'ant.jar').to_s + ':' + ant_home.join('share', 'java', 'ant-launcher.jar').to_s
+      ENV['PATH'] = Pathname.new(Javac.new.path).dirname.to_s << ':' << ENV['PATH']
+    end
+    
+  end
+  
+  Eclipse.configure
+  
   def initialize
     super()
   end
@@ -35,7 +50,7 @@ class Eclipse < BuildTool
       when 'src'
         @ant.project.setBasedir (to_path entry.attributes['path'])
       when 'lib'
-        libname = entry.attributes['path'].value
+        libname = entry.attributes['path']
         @ant.path(:id => (File.basename libname)) do |ant|
           ant.pathelement(:location => libname)
         end
@@ -60,14 +75,13 @@ class Eclipse < BuildTool
       Pathname.new(@src).join(p).to_s
     end
   end
-  
+    
   def configure src, build, install, build_type, options={}
     @src = src
     @build = build
     @classes = File.join(build, 'classes')
-    ant_home = Jud::Tools::Ant.new.ant_home
-    ENV['CLASSPATH'] = ant_home.join('lib', 'ant.jar').to_s + ':' + ant_home.join('lib', 'ant-launcher.jar').to_s
-    @ant = Antwrap::AntProject.new(:declarative => false) #, :loglevel => Logger::DEBUG)
+    $DEBUG=true
+    @ant = Antwrap::AntProject.new(:declarative => false, :fork => true, :executable => Javac.new.path, :loglevel => Logger::DEBUG)
     load_projectfile
     load_classpath
     add_javac_task
@@ -75,6 +89,7 @@ class Eclipse < BuildTool
   
   def build *args
     FileUtils.mkdir_p @classes unless File.directory? @classes
+    puts ENV['JAVA_HOME']
     @javac_task.execute
     @jar_task.execute
   end

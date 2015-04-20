@@ -211,8 +211,9 @@ class Project
       raise Error, "Not implemented"
     end
     puts (Platform.yellow "JAVA_HOME: #{ENV['JAVA_HOME']}")
+    puts (Platform.yellow "CLASSPATH: #{ENV['CLASSPATH']}")
   end
-  
+    
   def load_binenv
     self.class.binenv.each do |args|
       Project.project_evals(args).each do |path|
