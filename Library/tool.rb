@@ -38,8 +38,12 @@ class Tool
             puts (Platform.red "Can't find #{name}. I will compile it for you")
             begin
               Application.build 'Tools', projectname
-            rescue 
+            rescue Exception => e
               puts (Platform.red "I can't compile it. I am giving up !")
+              puts (Platform.red e)
+              for l in e.backtrace
+                puts (Platform.red l)
+              end
               return
             end
             add_to_path = project(projectname).prefix.to_s
