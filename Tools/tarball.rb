@@ -9,8 +9,6 @@ class Tarball < PackTool
     def load_path; false; end
   end
   
-  Tarball.configure
-  
   def initialize ext='tar.gz'
     super(ext)
   end
