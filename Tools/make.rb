@@ -8,9 +8,11 @@ class Make < BuildTool
     super()
   end
   
-  def build build
+  def build build, options = {}
     cmd = '"' + path + '"'
-    cmd += ' -j3' if Platform.is_linux?
+    mono = (options.has_key? :mono) and options[:mono]
+    cmd += ' -j3' if Platform.is_linux? and not mono
+    cmd += " #{options[:target]}" if options.has_key? :target
     Platform.execute cmd, wd: build
   end
   
