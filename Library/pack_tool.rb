@@ -1,6 +1,10 @@
 require 'tool'
 
 class PackTool < Tool
+
+  class << self
+    def get_config; {}; end
+  end
   
   attr_reader :ext
   
