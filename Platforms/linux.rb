@@ -1,6 +1,7 @@
 require 'composite'
 require 'c'
 require 'cxx'
+require 'java'
 
 class Linux < Composite
   
@@ -12,7 +13,7 @@ class Linux < Composite
     end
     
     def languages
-      [Jud::C, Jud::Cxx]
+      [Jud::C, Jud::Cxx, Jud::Java]
     end
     
   end
