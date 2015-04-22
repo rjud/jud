@@ -257,11 +257,12 @@ class Project
   def checkout_this build_type
     src = srcdir build_type
     if not File.directory? src then
-      if not self.class.alternate_scm_tool.nil? then
-        @scm_tool.checkout src, @options.merge({:safe => true})
+      safe = (not self.class.alternate_scm_tool.nil?)
+      if not @scm_tool.nil?
+        @scm_tool.checkout src, @options.merge({:safe => safe})
+      end
+      if not self.class.alternate_scm_tool.nil?
         self.class.alternate_scm_tool.checkout src
-      else
-        @scm_tool.checkout src, @options
       end
       @config.delete 'patches'
     end
@@ -303,7 +304,7 @@ class Project
   
   def build_this build_type
     if self.class.build_tool.nil? then return end
-    self.class.build_tool.build (builddir build_type)
+    self.class.build_tool.build (builddir build_type), @options[:options]
   end
   
   def install_this build_type
@@ -398,7 +399,7 @@ class Project
       alert_files.each do |f|
         msg += "#{f}\n"
       end
-      raise Error, msg
+      puts (Platform.red msg)
     end
     # Create symlinks to /usr
     files_to_link.each do |f|
@@ -596,7 +597,7 @@ class Project
     
     def cmake &block
       require 'cmake'
-      @build_tool = CMake.new
+      @build_tool = Jud::Tools::CMake.new
       @build_tool.instance_eval &block if block_given?
     end
     
@@ -632,9 +633,9 @@ class Project
       @scm_tool = SVN.new url, options
     end
     
-    def wget url, packtool
+    def wget url, packtool, options={}
       require 'wget'
-      @alternate_scm_tool = Wget.new url, packtool
+      @alternate_scm_tool = Wget.new url, packtool, options
     end
         
   end
