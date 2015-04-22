@@ -164,6 +164,18 @@ class Platform
     port = $general_config['proxy']['port']
     return "http://#{host}:#{port}"
   end
+
+  def self.set_env_proxy
+    @oldproxy = ENV['http_proxy']
+    @oldproxys = ENV['https_proxy']
+    ENV['http_proxy'] = "#{$general_config['proxy']['host']}:#{$general_config['proxy']['port'].to_i}"
+    ENV['https_proxy'] = ENV['http_proxy']
+  end
+  
+  def self.unset_env_proxy
+    ENV['http_proxy'] = @oldproxy
+    ENV['https_proxy'] = @oldproxys
+  end
   
   # wd, safe, keep
   def self.execute cmd, options = {}
