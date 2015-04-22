@@ -7,9 +7,9 @@ class BuildTool < Tool
   
   attr_reader :options
   
-  def initialize
+  def initialize options = {}
     super()
-    @options = {}
+    @options = options
   end
   
   def project sym
