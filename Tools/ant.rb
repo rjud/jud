@@ -5,8 +5,7 @@ module Jud
     class Ant < BuildTool
 
       class << self
-        def name; 'Ant'; end
-        
+        def name; 'Ant'; end        
         def extra_configure config
         end
       end
