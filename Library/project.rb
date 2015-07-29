@@ -257,6 +257,7 @@ class Project
   def checkout_this build_type
     src = srcdir build_type
     if not File.directory? src then
+	  puts (Platform.red "Can't find the sources of #{name} in the directory #{src}.")
       safe = (not self.class.alternate_scm_tool.nil?)
       if not @scm_tool.nil?
         @scm_tool.checkout src, @options.merge({:safe => safe})
