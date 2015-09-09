@@ -18,6 +18,7 @@ at_exit { Jud::Config.instance.save }
 
 $general_config = Jud::Config.instance.config['main']
 $tools_config = Jud::Config.instance.config['tools']
+$tools_passwords = Jud::Config.instance.passwords['tools']
 
 AUTO_GEMS =
   {

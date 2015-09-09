@@ -1,3 +1,4 @@
+require 'configuration_file'
 require 'pathname'
 require 'singleton'
 require 'yaml'
@@ -8,33 +9,15 @@ module Jud
     
     class Error < RuntimeError; end
     
-    attr_accessor :config
-    attr_reader :filename, :prefix
+    attr_accessor :config, :passwords
+    attr_reader :config_file, :passwords_file
+    private :config_file, :passwords_file
     
-    def initialize
-      @prefix = Pathname.new(Dir.home)
-      configdir = @prefix.join('.jud')
-      Dir.mkdir configdir.to_s if not File.directory? configdir.to_s
-      @filename = configdir.join('config.yml')
-      if File.exist? @filename
-        puts Platform.green("Load config file " + @filename.to_s)
-        raw = File.read(@filename)
-        @config = YAML.load(raw)
-      else
-        @config = {}
-      end
-      # If a key does not exist, create it with a hash as value
-      @config.default_proc = proc do |hash, key|
-        hash[key] = Hash.new{ |h,k| h[k] = Hash.new &h.default_proc }
-      end
-      # On all hashes, set the previous proc
-      iterate_on_hash = lambda do |h|
-        if h.instance_of? Hash then
-          h.default_proc = @config.default_proc
-          h.each_value { |v| iterate_on_hash.call v }
-        end
-      end
-      iterate_on_hash.call @config
+    def initialize()
+      @config_file = Jud::ConfigurationFile.new('config.yml')
+      @passwords_file = Jud::ConfigurationFile.new('password.yml')
+      @config = @config_file.contents
+      @passwords = @passwords_file.contents
       # Create some entries
       if not @config.include? 'main' then
         @config['main']['proxy']['host'] = ''
@@ -60,10 +43,8 @@ module Jud
     end
     
     def save
-      File.open(@filename, 'w') do |out|
-        YAML.dump(@config, out)
-      end
-      File.new(@filename).chmod(0600)
+      @config_file.save()
+      @passwords_file.save()
     end
     
   end

@@ -22,7 +22,7 @@ class Wget < SCMTool
     filename = src.dirname.join('tmp.tar.gz')
     puts (Platform.blue "Download #{@url} to #{filename}")
     agent.get(@url).save filename
-    @packtool.unpack filename, $src.to_s
+    @packtool.unpack filename, $src
     FileUtils.mv ($src.join @options[:srcrename]), src.to_s if @options[:srcrename]
   end
   
