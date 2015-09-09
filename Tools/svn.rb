@@ -25,6 +25,8 @@ class SVN < SCMTool
   def checkout src, options = {}
     url = resolve_url options
     cmd = "\"#{path}\" checkout"
+    cmd += " --trust-server-cert" if (@options.has_key? :trustServerCert and @options[:trustServerCert])
+    cmd += " --non-interactive"
     cmd += " #{@options[:args]}" if @options.has_key? :args
     cmd += " -r #{options[:rev]}" if options.has_key? :rev
     cmd += " #{url} #{src.basename.to_s}"
