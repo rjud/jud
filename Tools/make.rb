@@ -16,8 +16,9 @@ class Make < BuildTool
     Platform.execute cmd, wd: build
   end
   
-  def install build
-    cmd = '"' + path + '" install'
+  def install build, options = {}
+    fast = (options.has_key? :fast) and options[:fast]
+    cmd = '"' + path + '" install' + ('/fast' if fast)
     Platform.execute cmd, wd: build
   end
   

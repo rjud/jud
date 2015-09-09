@@ -60,7 +60,7 @@ module Jud
       end
       
       def install *args
-        @native_build_tool.install *args
+        @native_build_tool.install *args, { :fast => true }
       end
       
     end
