@@ -42,10 +42,14 @@ class Project
     end
   end
   
-  def srcdir build_type
+  def checkoutdir build_type
     dir = @name
     dir += "-#{@options[:version]}" if @options.has_key? :version
     $src.join dir
+  end
+  
+  def srcdir build_type
+    checkoutdir build_type
   end
   
   def builddir build_type
