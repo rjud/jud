@@ -86,7 +86,7 @@ module Application
   
   def build_one proj
     puts Platform.yellow("Build project " + proj.name)
-    project(proj.name.to_sym).install
+    project(proj.name.to_sym).install_me
   end
   
   def submit appname
@@ -97,7 +97,7 @@ module Application
         prj.submit
       else
         puts Platform.red("Not tool to submit #{proj.name}, so only build it")
-        prj.install
+        prj.install_me
       end
     end
   end

@@ -313,10 +313,16 @@ class Project
   end
   
   def install_this build_type
+    mkdir (builddir build_type)
+    cd (builddir build_type)
+    install
+  end
+  
+  def install
     if self.class.build_tool.nil? then return end
     self.class.build_tool.install (builddir build_type)
   end
-
+  
   def get_version
     if @options.has_key? :version then
       @options[:version]
@@ -431,7 +437,7 @@ class Project
     end
   end
   
-  def install
+  def install_me
     install_dependencies
     load_env
     build_types.each do |bt|
@@ -552,6 +558,24 @@ class Project
   end
   
   def lookin; []; end
+
+  def cd dir
+    Dir.chdir dir
+  end
+  
+  def mkdir *dirs, **options
+    dirs.each do |dir|
+      FileUtils.mkdir_p dir, options unless Dir.exist? dir
+    end
+  end
+  
+  def make rule, **options
+    self.class.build_tool.execute rule, options
+  end
+
+  def pwd
+    Dir.getwd
+  end
   
   class << self
     
