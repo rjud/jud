@@ -12,7 +12,7 @@ class Git < SCMTool
     super(url)
   end
   
-  def checkout src, options = {}
+  def checkout src, prj, options = {}
     cmd = "\"#{path}\" clone #{@url} #{src.basename.to_s}"
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
     if options.has_key? :tag then

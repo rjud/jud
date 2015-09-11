@@ -4,7 +4,7 @@ class Project
   
   class Error < RuntimeError; end
   
-  attr_reader :name, :packdir, :scm_tool, :config
+  attr_reader :name, :packdir, :scm_tool, :config, :options
   attr_accessor :repository
   
   def initialize options={}
@@ -261,13 +261,13 @@ class Project
   def checkout_this build_type
     src = srcdir build_type
     if not File.directory? src then
-	  puts (Platform.red "Can't find the sources of #{name} in the directory #{src}.")
+	  puts (Platform.red "Can't find the sources of #{name} in the directory #{src}")
       safe = (not self.class.alternate_scm_tool.nil?)
       if not @scm_tool.nil?
-        @scm_tool.checkout src, @options.merge({:safe => safe})
+        @scm_tool.checkout src, self, @options.merge({:safe => safe})
       end
       if not self.class.alternate_scm_tool.nil?
-        self.class.alternate_scm_tool.checkout src
+        self.class.alternate_scm_tool.checkout src, self
       end
       @config.delete 'patches'
     end
@@ -462,7 +462,7 @@ class Project
       build = builddir bt
       buildname = "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
-      @scm_tool.checkout src, @options if not File.directory? src
+      @scm_tool.checkout src, self, @options if not File.directory? src
       patch_this bt
       s = self.class.submit_tool.submit src, build, @install, bt, buildname, @options[:options]
       status = s if s > status
@@ -490,7 +490,17 @@ class Project
   def pack_tool
     $platform.pack_tool
   end
-    
+
+  def packsrcfilename ext
+    filename = @name
+    filename += "-#{@options[:version]}" if @options.has_key? :version
+    filename += ext
+  end
+  
+  def packsrcfile ext
+    Pathname.new(@packdir).join (packsrcfilename ext)
+  end
+  
   def packfilename
     filename = @name
     filename += "-#{@options[:version]}" if @options.has_key? :version
@@ -502,7 +512,7 @@ class Project
   def packfile
     Pathname.new(@packdir).join packfilename
   end
-    
+  
   def pack_this?
     true
   end

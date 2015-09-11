@@ -15,7 +15,7 @@ class CVS < SCMTool
     @modulename = modulename
   end
   
-  def checkout src, options = {}
+  def checkout src, prj, options = {}
     # Login
     cmd = "\"#{path}\" -d#{@url} login -p \"\""
     Platform.execute cmd, {:wd => src.dirname}.merge(options)

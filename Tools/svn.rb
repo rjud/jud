@@ -22,7 +22,7 @@ class SVN < SCMTool
     end
   end
   
-  def checkout src, options = {}
+  def checkout src, prj, options = {}
     url = resolve_url options
     cmd = "\"#{path}\" checkout"
     cmd += " --trust-server-cert" if (@options.has_key? :trustServerCert and @options[:trustServerCert])
