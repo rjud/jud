@@ -186,7 +186,7 @@ class Platform
       Dir.chdir wd.to_s
       puts Platform.blue(wd.to_s + '> ' + cmd)
     else
-      puts Platform.blue(cmd)
+      puts Platform.blue(Dir.getwd + '> ' + cmd)
     end
     exit_status = nil
     lines = []
