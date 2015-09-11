@@ -36,7 +36,8 @@ module Jud
         end
       end
       
-      def configure src, build, install, build_type, options={}
+      # Remove all arguments but project and only use project
+      def configure src, build, install, build_type, prj, options={}
         cmakecache = File.join(build, 'CMakeCache.txt').to_s
         File.delete cmakecache if File.exists? cmakecache
         cmd = '"' + path + '"'
@@ -47,6 +48,13 @@ module Jud
         cmd += ' -DCMAKE_BUILD_TYPE=' + build_type.to_s
         if Platform.is_linux? and Platform.is_64? then
           cmd += ' -DCMAKE_CXX_FLAGS=-fPIC'
+        end
+        # Set dependencies
+        cmd += ' -DCMAKE_PREFIX_PATH='
+        prj.depends.each do |d|
+          p = prj.project(d.name.to_sym)
+          cmd += p.prefix.to_s + ';'
+          p.lookin.each { |lk| cmd += lk.to_s + ';' }
         end
         resolve_options(options).each do |opt|
           cmd += ' -D' + opt.name + '=' + (option_to_s opt)

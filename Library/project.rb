@@ -300,7 +300,7 @@ class Project
     if self.class.build_tool.nil? then return end
     src = srcdir build_type
     build = builddir build_type
-    self.class.build_tool.configure src, build, @install, build_type, @options[:options]
+    self.class.build_tool.configure src, build, @install, build_type, self, @options[:options]
   end
   
   def build_types
@@ -540,7 +540,9 @@ class Project
     end
     depends
   end
-    
+  
+  def lookin; []; end
+  
   class << self
     
     attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :binenv, :libenv
