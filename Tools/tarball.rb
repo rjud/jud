@@ -47,7 +47,14 @@ class Tarball < PackTool
   end
   
   def unpack filename, destination
-    Gem::Package::TarReader.new(Zlib::GzipReader.open filename) do |tar|
+    io = 
+      begin
+        Zlib::GzipReader.open filename
+      rescue Zlib::GzipFile::Error => e
+        puts (Platform.red e)
+        File.open filename
+      end
+    Gem::Package::TarReader.new io do |tar|
       dest = nil
       tar.each do |entry|
         if entry.full_name == '././@LongLink'
