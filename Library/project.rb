@@ -1,4 +1,5 @@
 require 'config'
+require 'context'
 
 class Project
   
@@ -17,6 +18,10 @@ class Project
     @config = @app_config[@name][options[:application]]
     @install = prefix
     @packdir = $packdir
+    if @options.has_key? :version then
+      major, minor, revision = @options[:version].split '.'
+      @options.merge! ({ :major => major, :minor => minor, :revision => revision})
+    end
   end
   
   def project sym
@@ -295,12 +300,41 @@ class Project
       end
     end
   end
-  
-  def configure_this build_type
-    if self.class.build_tool.nil? then return end
+
+  def copy_sources build_type
     src = srcdir build_type
     build = builddir build_type
-    self.class.build_tool.configure src, build, @install, build_type, self, @options[:options]
+    puts (Platform.blue "Files must be copied from #{src} to #{build}")
+    Dir[src.join('**', '**')].each do |f|
+      new = f.sub src.to_s, build.to_s
+      if File.directory? f then
+        FileUtils.mkdir_p new
+      else
+        begin
+          File.symlink f, new
+        rescue Errno::EEXIST => e
+          puts (Platform.blue "Files have already been copied. In case of failure, please remove the directory #{build}")
+          return
+        rescue Exception => e
+          puts (Platform.red "Symlink not supported: #{e}")
+          abort
+        end
+      end
+    end
+  end
+  
+  def configure_this build_type
+    src = srcdir build_type
+    build = builddir build_type
+    FileUtils.mkdir_p build unless Dir.exist? build
+    copy_sources build_type if self.class.in_source
+    if self.class.configure_block.nil? then
+      return if self.class.build_tool.nil?
+      self.class.build_tool.configure src, build, @install, build_type, self, @options[:options]
+    else
+      Dir.chdir build
+      Context.new(self, build_type).instance_eval &self.class.configure_block
+    end
   end
   
   def build_types
@@ -308,19 +342,25 @@ class Project
   end
   
   def build_this build_type
-    if self.class.build_tool.nil? then return end
-    self.class.build_tool.build (builddir build_type), @options[:options]
+    build = builddir build_type
+    if self.class.build_block.nil? then
+      return if self.class.build_tool.nil?
+      self.class.build_tool.build build, @options[:options]
+    else
+      Dir.chdir build
+      Context.new(self, build_type).instance_eval &self.class.build_block
+    end
   end
   
   def install_this build_type
-    mkdir (builddir build_type)
-    cd (builddir build_type)
-    install
-  end
-  
-  def install
-    if self.class.build_tool.nil? then return end
-    self.class.build_tool.install (builddir build_type)
+    build = builddir build_type
+    if self.class.install_block.nil? then
+      return if self.class.build_tool.nil?
+      self.class.build_tool.install (Pathname.new build)
+    else
+      Dir.chdir build
+      Context.new(self, build_type).instance_eval &self.class.install_block
+    end
   end
   
   def get_version
@@ -558,28 +598,10 @@ class Project
   end
   
   def lookin; []; end
-
-  def cd dir
-    Dir.chdir dir
-  end
-  
-  def mkdir *dirs, **options
-    dirs.each do |dir|
-      FileUtils.mkdir_p dir, options unless Dir.exist? dir
-    end
-  end
-  
-  def make rule, **options
-    self.class.build_tool.execute rule, options
-  end
-
-  def pwd
-    Dir.getwd
-  end
   
   class << self
     
-    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :binenv, :libenv
+    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :binenv, :libenv, :configure_block, :build_block, :install_block, :in_source
     
     def languages
       @languages ||= []
@@ -608,7 +630,11 @@ class Project
     def add_build_type name
       @build_types << name
     end
-            
+
+    def insource
+      @in_source = true
+    end
+    
     def c
       require 'c'
       languages << Jud::C
@@ -659,9 +685,9 @@ class Project
       @build_tool.instance_eval &block if block_given?
     end
     
-    def git url
+    def git url, options={}
       require 'git'
-      @scm_tool = Git.new url
+      @scm_tool = Git.new url, options
     end
     
     def redmine url, projectid
@@ -678,7 +704,19 @@ class Project
       require 'wget'
       @alternate_scm_tool = Wget.new url, packtool, options
     end
-        
+
+    def configure &block
+      @configure_block = block_given? ? block : nil
+    end
+
+    def build &block
+      @build_block = block_given? ? block : nil
+    end
+
+    def install &block
+      @install_block = block_given? ? block : nil
+    end
+    
   end
   
 end
