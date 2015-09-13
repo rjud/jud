@@ -190,12 +190,17 @@ class Platform
     end
     exit_status = nil
     lines = []
-    Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
-      while line = stdout_err.gets
-        puts line
-        lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
+    begin
+      Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
+        while line = stdout_err.gets
+          puts line
+          lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
+        end
+        exit_status = wait_thr.value
       end
-      exit_status = wait_thr.value
+    rescue Errno::ENOENT => e
+      puts (Platform.red e)
+      abort
     end
     if options[:safe] or exit_status.success? then
       [exit_status, lines]
