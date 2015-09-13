@@ -27,7 +27,7 @@ class AutoTools < BuildTool
       Platform.execute "autoconf", wd: src
     end
     cmd = "#{configure}"
-    cmd += " --prefix=#{install.to_s}"    
+    cmd += " --prefix=#{install.to_s}"
     resolve_options(options).each do |opt|
       cmd += " #{opt.name}=#{option_to_s opt}"
     end
