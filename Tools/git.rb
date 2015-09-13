@@ -9,12 +9,15 @@ class Git < SCMTool
   Git.configure
   
   def initialize url, options={}
-    super(url)
+    super(url, options)
   end
   
   def checkout src, prj, options = {}
-    cmd = "\"#{path}\" clone #{@url} #{src.basename.to_s}"
+    cmd = "\"#{path}\" clone"
+    cmd += " #{@options[:args]}" if @options.has_key? :args
+    cmd += " #{@url} #{src.basename.to_s}"
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
+
     if options.has_key? :tag then
       cmd = "\"#{path}\" checkout #{options[:tag]}"
       Platform.execute cmd, {:wd => src}.merge(options)
