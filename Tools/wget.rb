@@ -36,26 +36,27 @@ class Wget < SCMTool
     filename = prj.packsrcfile(ext).to_s
     tmpfile = Pathname.new(filename + '.tmp')
     tmpfile.delete if tmpfile.file?
-    if File.exists? filename then
-    # File exists, nothing to do
-    elsif surl.start_with? 'http' then
-      require 'mechanize'
-      agent = Mechanize.new
-      agent.set_proxy $general_config['proxy']['host'], $general_config['proxy']['port'].to_i if Platform.use_proxy? surl
-      agent.pluggable_parser.default = Mechanize::Download
-      puts (Platform.blue "Download #{surl} to #{filename}")
-      agent.get(surl).save tmpfile.to_s
-    elsif surl.start_with? 'ftp' then
-      require 'uri'
-      require 'net/ftp'
-      uri = URI.parse surl
-      ftp = Net::FTP.new(uri.host, 'anonymous', '')
-      ftp.chdir(File.dirname uri.path)
-      ftp.getbinaryfile( (File.basename uri.path), tmpfile.to_s, 1024)
-      ftp.close
-    else
-      puts (Platform.red "[wget] Unknown protocol for URL #{surl}")
-      abort
+    if not File.exists? filename then
+      puts (Platform.blue "Downloading #{url} to #{filename}...")
+      if surl.start_with? 'http' then
+        require 'mechanize'
+        agent = Mechanize.new
+        agent.set_proxy $general_config['proxy']['host'], $general_config['proxy']['port'].to_i if Platform.use_proxy? surl
+        agent.pluggable_parser.default = Mechanize::Download
+        puts (Platform.blue "Download #{surl} to #{filename}")
+        agent.get(surl).save tmpfile.to_s
+      elsif surl.start_with? 'ftp' then
+        require 'uri'
+        require 'net/ftp'
+        uri = URI.parse surl
+        ftp = Net::FTP.new(uri.host, 'anonymous', '')
+        ftp.chdir(File.dirname uri.path)
+        ftp.getbinaryfile( (File.basename uri.path), tmpfile.to_s, 1024)
+        ftp.close
+      else
+        puts (Platform.red "[wget] Unknown protocol for URL #{surl}")
+        abort
+      end
     end
     tmpfile.rename filename unless File.exists? filename
     @packtool.unpack filename, $src
