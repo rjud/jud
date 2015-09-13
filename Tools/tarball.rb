@@ -54,7 +54,8 @@ class Tarball < PackTool
         puts (Platform.red e)
         File.open filename
       end
-    Gem::Package::TarReader.new io do |tar|
+    puts (Platform.blue "Unpacking #{filename} to #{destination}")
+    Gem::Package::TarReader.new (Zlib::GzipReader.open filename.to_s) do |tar|
       dest = nil
       tar.each do |entry|
         if entry.full_name == '././@LongLink'
@@ -67,13 +68,15 @@ class Tarball < PackTool
         end
         if entry.directory?
           FileUtils.mkdir_p dest, :mode => entry.header.mode, :verbose => false
-        elsif entry.file?
+        elsif entry.header.typeflag == '2'
+          File.symlink entry.header.linkname, dest
+        else
+          # Sometimes, the TarReader library doesn't consider that a file is a file ???
+          puts (Platform.red "#{entry.full_name} doesn't seem to be a file") if not entry.file?
           File.open dest, "wb" do |f|
             f.print entry.read
           end
           FileUtils.chmod entry.header.mode, dest, :verbose => false
-        elsif entry.header.typeflag == '2'
-          File.symlink entry.header.linkname, dest
         end
         dest = nil
       end
