@@ -13,15 +13,25 @@ class Git < SCMTool
   end
   
   def checkout src, prj, options = {}
+    
     cmd = "\"#{path}\" clone"
     cmd += " #{@options[:args]}" if @options.has_key? :args
     cmd += " #{@url} #{src.basename.to_s}"
     Platform.execute cmd, {:wd => src.dirname}.merge(options)
-
+    
+    cmd = nil
     if options.has_key? :tag then
       cmd = "\"#{path}\" checkout #{options[:tag]}"
-      Platform.execute cmd, {:wd => src}.merge(options)
+    elsif options.has_key? :version then
+      cmd = "\"#{path}\" checkout #{tag_of_version options[:version]}"
     end
+    
+    Platform.execute cmd, {:wd => src}.merge(options) if not cmd.nil?
+    
+  end
+
+  def tag_of_version version
+    "v#{version}"
   end
   
   def get_revision src, options = {}
