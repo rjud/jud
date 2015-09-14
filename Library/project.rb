@@ -449,6 +449,7 @@ class Project
       msg = "The following files have been installed by a previous package:\n"
       alert_files.each do |f|
         msg += "#{f}\n"
+        FileUtils.remove_file f if File.exists? f
       end
       puts (Platform.red msg)
     end
