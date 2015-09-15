@@ -1,15 +1,15 @@
 class Context
   
-  attr_accessor :project, :name, :debug, :release, :src, :build, :prefix
+  attr_accessor :prj, :name, :debug, :release, :src, :build, :prefix
   
-  def initialize project, build_type
-    @project = project
-    @name = project.name
+  def initialize prj, build_type
+    @prj = prj
+    @name = prj.name
     @debug = build_type == :Debug
     @release = build_type == :Release
-    @src = project.srcdir build_type
-    @build = project.builddir build_type
-    @prefix = project.prefix
+    @src = prj.srcdir build_type
+    @build = prj.builddir build_type
+    @prefix = prj.prefix
   end
   
   def debug?; @debug; end
@@ -19,6 +19,10 @@ class Context
     Dir.chdir dir
   end
   
+  def cp file, destination
+    FileUtils.copy_file file, destination
+  end
+  
   def mkdir *dirs, **options
     dirs.each do |dir|
       FileUtils.mkdir_p dir, options unless Dir.exist? dir
@@ -26,7 +30,7 @@ class Context
   end
   
   def make rule, **options
-    @project.class.build_tool.execute rule, options
+    prj.class.build_tool.execute rule, options
   end
   
   def pwd
@@ -37,6 +41,10 @@ class Context
     cmd = exe.to_s
     args.each { |a| cmd += " #{a}" }
     Platform.execute cmd
+  end
+  
+  def project sym
+    Application::project sym
   end
   
 end
