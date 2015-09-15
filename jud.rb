@@ -27,6 +27,31 @@ AUTO_GEMS =
   'zip' => 'zip'
 }
 
+# Change the implementation of symlink to support Windows mklink
+
+if RUBY_PLATFORM =~ /mswin32|cygwin|mingw|bccwin/
+  
+  require 'open3'
+  
+  class << File
+    
+    def symlink old_name, new_name
+      #puts "mklink /H #{new_name.gsub '/', '\\'} #{old_name.gsub '/', '\\'}"
+      stdin, stdout, stderr, wait_thr = Open3.popen3 'cmd.exe', "/c mklink /H #{new_name.gsub '/', '\\'} #{old_name.gsub '/', '\\'}"
+      stdout.read #puts stdout.read if not stdout.eof?
+      puts (Platform.red stderr.read) if not stderr.eof?
+      wait_thr.value.exitstatus
+    end
+    
+    def symlink? file_name
+      stdin, stdout, stderr, wait_thr = Open3.popen3 'cmd.exe', "/c dir #{file_name.gsub '/', '\\'} | find \"SYMLINK\""
+      wait_thr.value.exitstatus
+    end
+    
+  end
+  
+end
+
 module Kernel
   alias :require_orig :require
   def require name
