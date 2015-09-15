@@ -50,13 +50,15 @@ module Jud
           cmd += ' -DCMAKE_CXX_FLAGS=-fPIC'
         end
         # Set dependencies
-        cmd += ' -DCMAKE_PREFIX_PATH="'
-        prj.depends.each do |d|
-          p = prj.project(d.name.to_sym)
-          cmd += p.prefix.to_s + ';'
-          p.lookin.each { |lk| cmd += lk.to_s + ';' }
+        if prj.depends.size > 0 then
+          cmd += ' -DCMAKE_PREFIX_PATH="'
+          prj.depends.each do |d|
+            p = prj.project(d.name.to_sym)
+            cmd += p.prefix.to_s + ';'
+            p.lookin.each { |lk| cmd += lk.to_s + ';' }
+          end
+          cmd += '"'
         end
-        cmd += '"'
         resolve_options(options).each do |opt|
           cmd += ' -D' + opt.name + '=' + (option_to_s opt)
         end
