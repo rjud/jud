@@ -11,6 +11,8 @@ class Git < SCMTool
   def initialize url, options={}
     super(url, options)
   end
+
+  # Optimize to clone once from the remote server and then use it as a local server.
   
   def checkout src, prj, options = {}
     
