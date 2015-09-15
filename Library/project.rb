@@ -264,7 +264,7 @@ class Project
   end
   
   def checkout_this build_type
-    src = srcdir build_type
+    src = checkoutdir build_type
     if not File.directory? src then
 	  puts (Platform.red "Can't find the sources of #{name} in the directory #{src}")
       safe = (not self.class.alternate_scm_tool.nil?)
@@ -311,6 +311,13 @@ class Project
         FileUtils.mkdir_p new
       else
         begin
+          # Can't throw Errno::EEXIST ???
+          if Platform.is_windows?
+            if File.exists? new
+              puts (Platform.blue "Files have already been copied. In case of failure, please remove the directory #{build}")
+              return
+            end
+          end
           File.symlink f, new
         rescue Errno::EEXIST => e
           puts (Platform.blue "Files have already been copied. In case of failure, please remove the directory #{build}")
@@ -505,7 +512,7 @@ class Project
     load_env
     # Submit for each build
     build_types.each do |bt|
-      src = srcdir bt
+      src = checkoutdir bt
       build = builddir bt
       buildname = "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
@@ -689,6 +696,12 @@ class Project
     def git url, options={}
       require 'git'
       @scm_tool = Git.new url, options
+    end
+    
+    def nmake &block
+      require 'nmake'
+      @build_tool = NMake.new
+      @build_tool.instance_eval &block if block_given?
     end
     
     def redmine url, projectid
