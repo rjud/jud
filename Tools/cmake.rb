@@ -45,6 +45,7 @@ module Jud
           cmd += ' -G "' + $platform_config['CMake Generator'] + '"' 
         end
         cmd += ' -DCMAKE_INSTALL_PREFIX=' + install.to_s
+        cmd += ' -DCMAKE_DEBUG_POSTFIX=d' if build_type == :Debug
         cmd += ' -DCMAKE_BUILD_TYPE=' + build_type.to_s
         if Platform.is_linux? and Platform.is_64? then
           cmd += ' -DCMAKE_CXX_FLAGS=-fPIC'
