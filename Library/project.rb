@@ -5,7 +5,7 @@ class Project
   
   class Error < RuntimeError; end
   
-  attr_reader :name, :packdir, :scm_tool, :config, :options
+  attr_reader :name, :packdir, :scm_tool, :config, :options, :major, :minor, :revision
   attr_accessor :repository
   
   def initialize options={}
@@ -19,8 +19,8 @@ class Project
     @install = prefix
     @packdir = $packdir
     if @options.has_key? :version then
-      major, minor, revision = @options[:version].split '.'
-      @options.merge! ({ :major => major, :minor => minor, :revision => revision})
+      @major, @minor, @revision = @options[:version].split '.'
+      @options.merge! ({ :major => @major, :minor => @minor, :revision => @revision})
     end
   end
   
