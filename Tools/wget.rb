@@ -44,6 +44,7 @@ class Wget < SCMTool
         agent.set_proxy $general_config['proxy']['host'], $general_config['proxy']['port'].to_i if Platform.use_proxy? surl
         agent.pluggable_parser.default = Mechanize::Download
         puts (Platform.blue "Download #{surl} to #{filename}")
+        # no-check-certificate
         agent.get(surl).save tmpfile.to_s
       elsif surl.start_with? 'ftp' then
         require 'uri'
