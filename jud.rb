@@ -214,8 +214,8 @@ begin
   when 'help', nil
     print 'jud' +
       ' [branch <app> <branch>]' +
-      ' [build <conf>]' +
-      ' [test <conf>]' +
+      ' [build <conf> [project]]' +
+      ' [submit <conf> [project]]' +
       ' [install <app> [+<opt>]*[-<opt>]*]' +
       ' [option <path1> <pathn>* <value>' +
       ' [options <app>]' +
@@ -282,7 +282,11 @@ begin
     ARGV.shift
     appname = ARGV.shift
     load_application appname
-    Application.submit appname
+    if ARGV.length > 0 then
+	  Application.submit appname, ARGV.shift
+	else
+      Application.submit appname
+	end
   when 'tag'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
@@ -301,11 +305,10 @@ begin
     end
   when 'upload'
     ARGV.shift
-    name = ARGV.shift
-    options = {}
-    options[:version] = ARGV.shift if ARGV.length > 0
-    app = Object.const_get(name).new(options)
-    app.upload_this
+    appname = ARGV.shift
+	project = ARGV.shift
+	load_application appname
+	Application.upload appname, project
   end
   
 rescue Platform::Error, Project::Error, Tool::Error => e
