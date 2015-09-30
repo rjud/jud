@@ -1,4 +1,5 @@
 require 'composite'
+require 'java'
 
 module Jud
   class Win32 < Composite
@@ -8,6 +9,10 @@ module Jud
       def create config
         config['CMake Generator'] = 'NMake Makefiles'
         config['Native Build Tool'] = 'NMake'
+      end
+	  
+	  def languages
+        [Jud::Java]
       end
       
     end
