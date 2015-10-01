@@ -20,6 +20,12 @@ $general_config = Jud::Config.instance.config['main']
 $tools_config = Jud::Config.instance.config['tools']
 $tools_passwords = Jud::Config.instance.passwords['tools']
 
+ENV['PATH'] = ''
+# Add a configure step to find basic utilities
+if Platform.is_windows?
+  ENV['PATH'] += ';C:\Windows\system32'
+end
+
 AUTO_GEMS =
   {
   'antwrap' => 'Antwrap',
@@ -35,12 +41,25 @@ if RUBY_PLATFORM =~ /mswin32|cygwin|mingw|bccwin/
   
   class << File
     
+    #$PRINT_SYMLINK_MESSAGE = true
+    
     def symlink old_name, new_name
-      #puts "mklink /H #{new_name.gsub '/', '\\'} #{old_name.gsub '/', '\\'}"
-      stdin, stdout, stderr, wait_thr = Open3.popen3 'cmd.exe', "/c mklink /H #{new_name.gsub '/', '\\'} #{old_name.gsub '/', '\\'}"
-      stdout.read #puts stdout.read if not stdout.eof?
+      cmd = "mklink /H #{new_name.gsub '/', '\\'} #{old_name.gsub '/', '\\'}"
+      stdin, stdout, stderr, wait_thr = Open3.popen3 'cmd.exe', "/c #{cmd}"
+      stdout.read # Keep it to flush
       puts (Platform.red stderr.read) if not stderr.eof?
       wait_thr.value.exitstatus
+      #if not symlink? new_name
+      #  FileUtils.copy_file old_name, new_name
+      #  if $PRINT_SYMLINK_MESSAGE
+      #    puts (Platform.red "Symlinks are not supported or enabled on your platform. This privilege " +
+      #          "may be granted to you by an administator. Run secpol.msc. " +
+      #          "Open security settings > Local Policies > User Rights Assignment. " +
+      #          " Find \"Create symbolic links\", edit the properties and add you."
+      #          )
+      #    $PRINT_SYMLINK_MESSAGE = false
+      #  end
+      #end
     end
     
     def symlink? file_name
@@ -191,6 +210,10 @@ begin
     exit
   end
   
+  Dir.glob $juddir.join('Projects', '*.rb').to_s do |rb|
+    load rb
+  end
+  
   $:.unshift $home.join('Projects').to_s
   $:.unshift $home.join('Applications').to_s
   
@@ -209,12 +232,13 @@ begin
       exit 1
     end
   end
-  
+    
   case ARGV.first
   when 'help', nil
     print 'jud' +
       ' [branch <app> <branch>]' +
       ' [build <conf>]' +
+      ' [deploy <conf> <proj>]' +
       ' [test <conf>]' +
       ' [install <app> [+<opt>]*[-<opt>]*]' +
       ' [option <path1> <pathn>* <value>' +
@@ -234,6 +258,15 @@ begin
       Application.build appname, ARGV.shift
     else
       Application.build appname
+    end
+  when 'deploy'
+    ARGV.shift
+    appname = ARGV.shift
+    load_application appname
+    if ARGV.length > 0
+      Application.deploy appname, ARGV.shift
+    else
+      Application.deploy appname
     end
   when 'applications'
     puts 'Available applications'

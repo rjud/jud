@@ -88,6 +88,23 @@ module Application
     puts Platform.yellow("Build project " + proj.name)
     project(proj.name.to_sym).install_me
   end
+    
+  def deploy appname, projname = nil
+    if projname.nil?
+      projects(appname).each do |prj|
+        deploy_one prj
+      end
+    else
+      prj = Object.const_get projname
+      deploy_one prj
+    end
+  end
+
+  def deploy_one proj
+    puts Platform.yellow "Deploy project #{proj.name}"
+    prj = project(proj.name.to_sym)
+    prj.deploy_this if prj.deploy_this?
+  end
   
   def submit appname
     projects(appname).each do |proj|
