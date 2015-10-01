@@ -118,5 +118,10 @@ module Application
       end
     end
   end
+  
+  def upload appname, projname
+    prj = project(projname.to_sym)
+    prj.upload_this
+  end
     
 end

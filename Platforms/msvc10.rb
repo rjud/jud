@@ -14,7 +14,7 @@ class Msvc10 < Jud::Win32
     end
     
     def languages
-      [Jud::C, Jud::Cxx]
+      super + [Jud::C, Jud::Cxx]
     end
     
     def compiler
