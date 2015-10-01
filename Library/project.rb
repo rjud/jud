@@ -412,9 +412,9 @@ class Project
   end
   
   def deploy_this?
-    not Platform.is_windows?
+    true
   end
-
+  
   def deploy_this
     # Go to /usr
     usr = $install.join 'usr'
