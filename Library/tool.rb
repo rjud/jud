@@ -58,13 +58,16 @@ class Tool
               end
               return
             end
-            add_to_path = project(projectname).prefix.to_s
+            add_to_path = project(projectname.to_sym).prefix.to_s
+            add_to_path2 = project(projectname.to_sym).prefix.join('bin').to_s
             if Platform.is_windows? then
-              ENV['PATH'] = add_to_path << ";" << ENV['PATH']
+              ENV['PATH'] = add_to_path << ";" << add_to_path2 << ";" << ENV['PATH']
             else
-              ENV['PATH'] = add_to_path << ":" << ENV['PATH']
+              ENV['PATH'] = add_to_path << ":" << add_to_path2 << ":" << ENV['PATH']
             end
+            puts "PATH: #{ENV['PATH']}"
             path = Platform.find_executable basename, optional=true
+            puts path
           end
           path
         }

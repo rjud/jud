@@ -135,7 +135,12 @@ class Platform
   
   def get_tool name
     load $juddir.join('Tools', name.downcase + '.rb').to_s
-    tool = Object.const_get(name).new(name)
+    tool =
+      begin
+        Object.const_get(name).new(name)
+      rescue
+        Object.const_get("Jud::Tools::#{name}").new(name)
+      end
     #config = Jud::Config.instance.config['tools']
     return tool
   end

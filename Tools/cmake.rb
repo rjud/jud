@@ -38,12 +38,16 @@ module Jud
       
       # Remove all arguments but project and only use project
       def configure src, build, install, build_type, prj, options={}
+        ENV['PATH'] = Pathname.new(@native_build_tool.path).dirname.to_s << ';' << ENV['PATH']
         cmakecache = File.join(build, 'CMakeCache.txt').to_s
         File.delete cmakecache if File.exists? cmakecache
         cmd = '"' + path + '"'
         if $platform_config.include? 'CMake Generator' then
           cmd += ' -G "' + $platform_config['CMake Generator'] + '"' 
         end
+        #if $platform_config.include? 'CMake System Name' then
+        #  cmd += ' -DCMAKE_SYSTEM_NAME=' + $platform_config['CMake System Name']
+        #end
         cmd += ' -DCMAKE_INSTALL_PREFIX=' + install.to_s
         cmd += ' -DCMAKE_DEBUG_POSTFIX=d' if build_type == :Debug
         cmd += ' -DCMAKE_BUILD_TYPE=' + build_type.to_s
@@ -60,7 +64,8 @@ module Jud
           end
           cmd += '"'
         end
-        resolve_options(options).each do |opt|
+        context = Context.new(prj, build_type)
+        resolve_options(context, options).each do |opt|
           cmd += ' -D' + opt.name + '=' + (option_to_s opt)
         end
         cmd += ' ' + src.to_s
@@ -72,7 +77,11 @@ module Jud
       end
       
       def install *args
-        @native_build_tool.install *args, { :fast => true }
+        if @native_build_tool.is_a? Ninja
+          @native_build_tool.install *args
+        else
+          @native_build_tool.install *args, { :fast => true }
+        end
       end
       
     end
