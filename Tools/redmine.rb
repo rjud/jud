@@ -79,9 +79,13 @@ class Redmine < RepositoryTool
     uri2 = URI.parse File.join(@url, @versions_page_path, '/new')    
     agent.get uri2 do |page|
       puts Platform.blue("Create version #{version} at #{uri1.to_s}")
-      page.form_with(:action => uri1.path) do |form|
-        form.set_fields 'version[name]' => version
-      end.submit
+      begin
+        page.form_with(:action => uri1.path) do |form|
+          form.set_fields 'version[name]' => version
+        end.submit
+      rescue => e
+        puts Platform.red("Can't create version:\n#{e}")
+      end
     end
   end
   
