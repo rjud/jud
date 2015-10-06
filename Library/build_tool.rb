@@ -41,7 +41,7 @@ class BuildTool < Tool
     # Merge them with the given options
     options.each do |id, enabled|
       raise Error, "#{self.class.name}: unknown option '#{id.to_s}'" if not @options.key? id
-      ret[id] = ResolvedOption.new(id.to_s, @options[id].type, enabled, enabled, opt.confcond)
+      ret[id] = ResolvedOption.new(id.to_s, @options[id].type, enabled, enabled, @options[id].confcond)
     end
     # Return the resolved options
     ret.values
