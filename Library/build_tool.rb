@@ -32,8 +32,9 @@ class BuildTool < Tool
     ret = {}
     # Eval the default options of the project
     @options.each do |id, opt|
-      if opt.default and (opt.cond.nil? or options.key? opt.cond or ( ret.key? opt.cond and ret[opt.cond].value) ) then
+      if not opt.default.nil? and (opt.cond.nil? or options.key? opt.cond or ( ret.key? opt.cond and ret[opt.cond].value) ) then
         if opt.confcond.nil? or context.instance_eval &opt.confcond
+          puts "#{id} #{context.eval_option opt.default}"
           ret[id] = ResolvedOption.new id.to_s, opt.type, true, (context.eval_option opt.default), opt.confcond
         end
       end
