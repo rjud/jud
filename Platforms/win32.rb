@@ -11,7 +11,7 @@ module Jud
         config['Native Build Tool'] = 'NMake'
       end
 	  
-	  def languages
+      def languages
         [Jud::Java]
       end
       
