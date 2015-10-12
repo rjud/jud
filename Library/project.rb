@@ -475,6 +475,16 @@ class Project
       puts "Unlink #{f}"
       File.unlink f
     end
+    # Update installed files
+    if Platform.is_windows?
+      installed_files.each do |f|
+        old = f.sub usr.to_s, prefix.to_s
+        if (File.mtime old) > (File.mtime f)
+          puts (Platform.blue "Updating #{f}")
+          FileUtils.copy_file old, f 
+        end
+      end
+    end
     # Save the list of files
     dir = Pathname.new(filesname).dirname.to_s
     FileUtils.mkdir_p dir unless File.exists? dir
