@@ -69,10 +69,14 @@ class Tarball < PackTool
         if entry.directory?
           FileUtils.mkdir_p dest, :mode => entry.header.mode, :verbose => false
         elsif entry.header.typeflag == '2'
-          File.symlink entry.header.linkname, dest
+          old_name = dest
+          new_name = File.join destination, entry.header.linkname
+          File.symlink old_name, new_name if not File.symlink? new_name
         else
           # Sometimes, the TarReader library doesn't consider that a file is a file ???
           puts (Platform.red "#{entry.full_name} doesn't seem to be a file") if not entry.file?
+          dirname = Pathname(dest).dirname
+          FileUtils.mkdir_p dirname, :verbose => false if not File.exist? dirname
           File.open dest, "wb" do |f|
             f.print entry.read
           end
