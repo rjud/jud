@@ -11,7 +11,7 @@ class Make < BuildTool
   def build_command_line options
     cmd = '"' + path + '"'
     mono = (options.has_key? :mono) and options[:mono]
-    cmd += ' -j3' if Platform.is_linux? and not mono
+    cmd += " -j#{Platform.nbcores+1}" if Platform.is_linux? and not mono
     cmd += " -f #{options[:makefile]}" if options.has_key? :makefile
     cmd += " #{options[:args]}" if options.has_key? :args
     cmd += " #{options[:target]}" if options.has_key? :target
