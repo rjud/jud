@@ -26,13 +26,26 @@ class AutoTools < BuildTool
       Platform.execute "automake --add-missing", wd: src
       Platform.execute "autoconf", wd: src
     end
+    configlog = build.join 'config.log'
+    FileUtils.rm configlog if File.exists? configlog
     cmd = "#{configure}"
     cmd += " --prefix=#{install.to_s}"
-    resolve_options(options).each do |opt|
-      cmd += " #{opt.name}=#{option_to_s opt}"
+    fpicset = false
+    context = Context.new(prj, build_type)
+    resolve_options(context, options).each do |opt|
+      if opt.name == 'CPPFLAGS'
+        cmd += " #{opt.name}=\"#{option_to_s opt}"
+        if Platform.is_linux? and Platform.is_64? then
+          cmd += " -fPIC"
+          fpicset = true
+        end 
+        cmd += "\""
+      else
+        cmd += " #{opt.name}=#{option_to_s opt}"
+      end
     end
     if Platform.is_linux? and Platform.is_64? then
-      cmd += " CPPFLAGS=-fPIC"
+      cmd += " CPPFLAGS=-fPIC" unless fpicset
     end
     Platform.execute cmd, wd: build
   end
