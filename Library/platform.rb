@@ -135,7 +135,12 @@ class Platform
   
   def get_tool name
     load $juddir.join('Tools', name.downcase + '.rb').to_s
-    tool = Object.const_get(name).new(name)
+    tool =
+      begin
+        Object.const_get(name).new(name)
+      rescue
+        Object.const_get("Jud::Tools::#{name}").new(name)
+      end
     #config = Jud::Config.instance.config['tools']
     return tool
   end
@@ -186,16 +191,21 @@ class Platform
       Dir.chdir wd.to_s
       puts Platform.blue(wd.to_s + '> ' + cmd)
     else
-      puts Platform.blue(cmd)
+      puts Platform.blue(Dir.getwd + '> ' + cmd)
     end
     exit_status = nil
     lines = []
-    Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
-      while line = stdout_err.gets
-        puts line
-        lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
+    begin
+      Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
+        while line = stdout_err.gets
+          puts line
+          lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
+        end
+        exit_status = wait_thr.value
       end
-      exit_status = wait_thr.value
+    rescue Errno::ENOENT => e
+      puts (Platform.red e)
+      abort
     end
     if options[:safe] or exit_status.success? then
       [exit_status, lines]

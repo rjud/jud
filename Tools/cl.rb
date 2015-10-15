@@ -49,7 +49,8 @@ class Cl < Jud::C::Compiler
         ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include', 'winrt') # WIN7 + MSVC11
         ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include', 'um') # WIN7 + MSVC11
         ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib')
-        ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib', 'win8', 'um', 'x86') # WIN7 + MSVC11
+        ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib', 'win8', 'um', 'x86') # WIN7 + MSVC11 (JBE)
+        ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib', 'winv6.3', 'um', 'x86') # WIN7 + MSVC12 (LBA)
       end
       # Framework .NET (to have msbuild)
       path << ";" << @framework_dir

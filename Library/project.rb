@@ -1,10 +1,11 @@
 require 'config'
+require 'context'
 
 class Project
   
   class Error < RuntimeError; end
   
-  attr_reader :name, :packdir, :scm_tool, :config
+  attr_reader :name, :packdir, :scm_tool, :config, :options, :major, :minor, :revision
   attr_accessor :repository
   
   def initialize options={}
@@ -17,6 +18,10 @@ class Project
     @config = @app_config[@name][options[:application]]
     @install = prefix
     @packdir = $packdir
+    if @options.has_key? :version then
+      @major, @minor, @revision = @options[:version].split '.'
+      @options.merge! ({ :major => @major, :minor => @minor, :revision => @revision})
+    end
   end
   
   def project sym
@@ -42,10 +47,14 @@ class Project
     end
   end
   
-  def srcdir build_type
+  def checkoutdir build_type
     dir = @name
     dir += "-#{@options[:version]}" if @options.has_key? :version
     $src.join dir
+  end
+  
+  def srcdir build_type
+    checkoutdir build_type
   end
   
   def builddir build_type
@@ -255,14 +264,15 @@ class Project
   end
   
   def checkout_this build_type
-    src = srcdir build_type
+    src = checkoutdir build_type
     if not File.directory? src then
+	  puts (Platform.red "Can't find the sources of #{name} in the directory #{src}")
       safe = (not self.class.alternate_scm_tool.nil?)
       if not @scm_tool.nil?
-        @scm_tool.checkout src, @options.merge({:safe => safe})
+        @scm_tool.checkout src, self, @options.merge({:safe => safe})
       end
       if not self.class.alternate_scm_tool.nil?
-        self.class.alternate_scm_tool.checkout src
+        self.class.alternate_scm_tool.checkout src, self
       end
       @config.delete 'patches'
     end
@@ -290,12 +300,48 @@ class Project
       end
     end
   end
-  
-  def configure_this build_type
-    if self.class.build_tool.nil? then return end
+
+  def copy_sources build_type
     src = srcdir build_type
     build = builddir build_type
-    self.class.build_tool.configure src, build, @install, build_type, @options[:options]
+    puts (Platform.blue "Files must be copied from #{src} to #{build}")
+    Dir[src.join('**', '**')].each do |f|
+      new = f.sub src.to_s, build.to_s
+      if File.directory? f then
+        FileUtils.mkdir_p new
+      else
+        begin
+          # Can't throw Errno::EEXIST ???
+          if Platform.is_windows?
+            if File.exists? new
+              puts (Platform.blue "Files have already been copied. In case of failure, please remove the directory #{build}")
+              return
+            end
+          end
+          File.symlink f, new
+        rescue Errno::EEXIST => e
+          puts (Platform.blue "Files have already been copied. In case of failure, please remove the directory #{build}")
+          return
+        rescue Exception => e
+          puts (Platform.red "Symlink not supported: #{e}")
+          abort
+        end
+      end
+    end
+  end
+  
+  def configure_this build_type
+    src = srcdir build_type
+    build = builddir build_type
+    FileUtils.mkdir_p build unless Dir.exist? build
+    copy_sources build_type if self.class.in_source
+    if self.class.configure_block.nil? then
+      return if self.class.build_tool.nil?
+      self.class.build_tool.configure src, build, @install, build_type, self, @options[:options]
+    else
+      Dir.chdir build
+      Context.new(self, build_type).instance_eval &self.class.configure_block
+    end
   end
   
   def build_types
@@ -303,15 +349,27 @@ class Project
   end
   
   def build_this build_type
-    if self.class.build_tool.nil? then return end
-    self.class.build_tool.build (builddir build_type), @options[:options]
+    build = builddir build_type
+    if self.class.build_block.nil? then
+      return if self.class.build_tool.nil?
+      self.class.build_tool.build build, @options[:options]
+    else
+      Dir.chdir build
+      Context.new(self, build_type).instance_eval &self.class.build_block
+    end
   end
   
   def install_this build_type
-    if self.class.build_tool.nil? then return end
-    self.class.build_tool.install (builddir build_type)
+    build = builddir build_type
+    if self.class.install_block.nil? then
+      return if self.class.build_tool.nil?
+      self.class.build_tool.install (Pathname.new build)
+    else
+      Dir.chdir build
+      Context.new(self, build_type).instance_eval &self.class.install_block
+    end
   end
-
+  
   def get_version
     if @options.has_key? :version then
       @options[:version]
@@ -354,9 +412,9 @@ class Project
   end
   
   def deploy_this?
-    not Platform.is_windows?
+    true
   end
-
+  
   def deploy_this
     # Go to /usr
     usr = $install.join 'usr'
@@ -398,6 +456,7 @@ class Project
       msg = "The following files have been installed by a previous package:\n"
       alert_files.each do |f|
         msg += "#{f}\n"
+        FileUtils.remove_file f if File.exists? f
       end
       puts (Platform.red msg)
     end
@@ -426,7 +485,7 @@ class Project
     end
   end
   
-  def install
+  def install_me
     install_dependencies
     load_env
     build_types.each do |bt|
@@ -453,11 +512,11 @@ class Project
     load_env
     # Submit for each build
     build_types.each do |bt|
-      src = srcdir bt
+      src = checkoutdir bt
       build = builddir bt
       buildname = "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
-      @scm_tool.checkout src, @options if not File.directory? src
+      @scm_tool.checkout src, self, @options if not File.directory? src
       patch_this bt
       s = self.class.submit_tool.submit src, build, @install, bt, buildname, @options[:options]
       status = s if s > status
@@ -485,7 +544,17 @@ class Project
   def pack_tool
     $platform.pack_tool
   end
-    
+
+  def packsrcfilename ext
+    filename = @name
+    filename += "-#{@options[:version]}" if @options.has_key? :version
+    filename += ext
+  end
+  
+  def packsrcfile ext
+    Pathname.new(@packdir).join (packsrcfilename ext)
+  end
+  
   def packfilename
     filename = @name
     filename += "-#{@options[:version]}" if @options.has_key? :version
@@ -497,7 +566,7 @@ class Project
   def packfile
     Pathname.new(@packdir).join packfilename
   end
-    
+  
   def pack_this?
     true
   end
@@ -535,10 +604,12 @@ class Project
     end
     depends
   end
-    
+  
+  def lookin; []; end
+  
   class << self
     
-    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :binenv, :libenv
+    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :binenv, :libenv, :configure_block, :build_block, :install_block, :in_source
     
     def languages
       @languages ||= []
@@ -567,7 +638,11 @@ class Project
     def add_build_type name
       @build_types << name
     end
-            
+
+    def insource
+      @in_source = true
+    end
+    
     def c
       require 'c'
       languages << Jud::C
@@ -623,6 +698,12 @@ class Project
       @scm_tool = Git.new url, options
     end
     
+    def nmake &block
+      require 'nmake'
+      @build_tool = NMake.new
+      @build_tool.instance_eval &block if block_given?
+    end
+    
     def redmine url, projectid
       require 'redmine'
       @repository = Redmine.new url, projectid
@@ -637,7 +718,19 @@ class Project
       require 'wget'
       @alternate_scm_tool = Wget.new url, packtool, options
     end
-        
+
+    def configure &block
+      @configure_block = block_given? ? block : nil
+    end
+
+    def build &block
+      @build_block = block_given? ? block : nil
+    end
+
+    def install &block
+      @install_block = block_given? ? block : nil
+    end
+    
   end
   
 end

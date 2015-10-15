@@ -9,22 +9,29 @@ class SVN < SCMTool
   end
   
   def resolve_url options={}
-    if options.has_key? :trunk then
-      url = @url + '/trunk/'
-    elsif options.has_key? :branch then
-      url = @url + '/branches/' + options[:branch]
-    elsif options.has_key? :tag then
-      url = @url + '/tags/' + options[:tag]
-    elsif options.has_key? :version then
-      url = @url + '/tags/' + options[:version]
-    else
-      url = @url + '/trunk/'
-    end
+    url = 
+      if options.has_key? :trunk then
+        @url + '/trunk/'
+      elsif options.has_key? :branch then
+        @url + '/branches/' + options[:branch]
+      elsif options.has_key? :tag then
+        @url + '/tags/' + options[:tag]
+      elsif options.has_key? :version then
+        url_of_version options[:version]
+      else
+        @url + '/trunk/'
+      end
   end
   
-  def checkout src, options = {}
+  def url_of_version version
+    @url + '/tags/' + version
+  end
+  
+  def checkout src, prj, options = {}
     url = resolve_url options
     cmd = "\"#{path}\" checkout"
+    cmd += " --trust-server-cert" if (@options.has_key? :trustServerCert and @options[:trustServerCert])
+    cmd += " --non-interactive"
     cmd += " #{@options[:args]}" if @options.has_key? :args
     cmd += " -r #{options[:rev]}" if options.has_key? :rev
     cmd += " #{url} #{src.basename.to_s}"

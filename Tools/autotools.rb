@@ -17,7 +17,7 @@ class AutoTools < BuildTool
     end
   end
   
-  def configure src, build, install, build_type, options={}
+  def configure src, build, install, build_type, prj, options={}
     configure = File.join(src, 'configure')
     unless File.exists? configure then
       Platform.execute "aclocal -I config", wd: src
@@ -27,7 +27,7 @@ class AutoTools < BuildTool
       Platform.execute "autoconf", wd: src
     end
     cmd = "#{configure}"
-    cmd += " --prefix=#{install.to_s}"    
+    cmd += " --prefix=#{install.to_s}"
     resolve_options(options).each do |opt|
       cmd += " #{opt.name}=#{option_to_s opt}"
     end
@@ -35,6 +35,10 @@ class AutoTools < BuildTool
       cmd += " CPPFLAGS=-fPIC"
     end
     Platform.execute cmd, wd: build
+  end
+
+  def execute *args, **options
+    @native_build_tool.execute *args, **options
   end
   
   def build *args

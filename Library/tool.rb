@@ -26,10 +26,22 @@ class Tool
       end
     end
     
+    def get_passwords
+      if $platform_config then
+        unless $platform_config['tools'].include? name then
+          $platform_config['tools'][name] = name
+        end
+        return $tools_passwords[$platform_config['tools'][name]]
+      else
+        return $tools_passwords[name]
+      end
+    end
+    
     def configure
       puts (Platform.blue "Configure #{self.name}")
       # Get the current configuration of this tool
       config = get_config
+      passwords = get_passwords
       # Configure path of this tool if needed
       if load_path then
         configure_property config, 'path', lambda {
@@ -46,13 +58,16 @@ class Tool
               end
               return
             end
-            add_to_path = project(projectname).prefix.to_s
+            add_to_path = project(projectname.to_sym).prefix.to_s
+            add_to_path2 = project(projectname.to_sym).prefix.join('bin').to_s
             if Platform.is_windows? then
-              ENV['PATH'] = add_to_path << ";" << ENV['PATH']
+              ENV['PATH'] = add_to_path << ";" << add_to_path2 << ";" << ENV['PATH']
             else
-              ENV['PATH'] = add_to_path << ":" << ENV['PATH']
+              ENV['PATH'] = add_to_path << ":" << add_to_path2 << ":" << ENV['PATH']
             end
+            puts "PATH: #{ENV['PATH']}"
             path = Platform.find_executable basename, optional=true
+            puts path
           end
           path
         }
@@ -104,10 +119,11 @@ class Tool
     
   end
   
-  attr_reader :config, :options
+  attr_reader :config, :passwords, :options
   
   def initialize options={}
     @config = self.class.get_config
+    @passwords = self.class.get_passwords
     @options = options
   end
   
