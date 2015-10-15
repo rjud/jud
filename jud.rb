@@ -20,9 +20,9 @@ $general_config = Jud::Config.instance.config['main']
 $tools_config = Jud::Config.instance.config['tools']
 $tools_passwords = Jud::Config.instance.passwords['tools']
 
-ENV['PATH'] = ''
 # Add a configure step to find basic utilities
 if Platform.is_windows?
+  ENV['PATH'] = ''
   ENV['PATH'] += ';C:\Windows\system32'
 end
 
