@@ -618,9 +618,9 @@ class Project
       @build_tool.instance_eval &block if block_given?
     end
     
-    def git url
+    def git url, options={}
       require 'git'
-      @scm_tool = Git.new url
+      @scm_tool = Git.new url, options
     end
     
     def redmine url, projectid
