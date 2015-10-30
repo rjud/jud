@@ -7,11 +7,9 @@ set(CTEST_SITE "<%= Socket.gethostname %>")
 set(CTEST_CMAKE_COMMAND "<%= @build_tool.path.gsub('\\', '/') %>")
 set(CTEST_CMAKE_GENERATOR "<%= $platform_config['CMake Generator'] %>")
 
-<% if false %><%# memcheck_tool is not defined %>
 <% if $platform.memcheck_tool -%>
 set(CTEST_MEMORYCHECK_COMMAND "<%= $platform.memcheck_tool.path.gsub('\\', '/') %>")
 <% end -%>
-<% end %>
 
 set(CTEST_UPDATE_COMMAND "<%= @scm_tool.path.gsub('\\', '/') %>")
 
@@ -19,10 +17,12 @@ set(CTEST_INITIAL_CACHE "
   CMAKE_INSTALL_PREFIX:PATH=<%= prefix %>
   CMAKE_BUILD_TYPE:STRING=<%= build_type.to_s %>
   CMAKE_MAKE_PROGRAM:PATH=<%= $platform.cmake_native_build_tool.path.gsub('\\', '/') %>
-<% @build_tool.resolve_options(options).each do |opt| -%>
+<% @build_tool.resolve_options(Context.new(prj, build_type), options).each do |opt| -%>
   <%= opt.name %>:<%= opt.type %>=<%= @build_tool.option_to_s opt %>
 <% end -%>
 ")
+
+ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
 
 file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" "${CTEST_INITIAL_CACHE}")
 
@@ -42,15 +42,14 @@ if(NOT res EQUAL 0)
 endif()
 
 ctest_test(RETURN_VALUE res)
+
+<% if $platform.memcheck_tool and build_type == :Debug -%>
+ctest_memcheck()
+<% end -%>
+
 if(NOT res EQUAL 0)
   ctest_submit()
   message(FATAL_ERROR "!!!! Some tests failed !!!!")
 endif()
-
-<% if false %><%# memcheck_tool is not defined %>
-<% if $platform.memcheck_tool and build_type == :Debug -%>
-ctest_memcheck()
-<% end -%>
-<% end %>
 
 ctest_submit()

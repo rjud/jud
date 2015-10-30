@@ -6,6 +6,8 @@ class Valgrind < MemcheckTool
     def variants; return [Platform::UNIX]; end
   end
   
+  Valgrind.configure
+  
   def initialize
     super()
   end

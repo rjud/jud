@@ -287,7 +287,7 @@ begin
       end
     end
     claz = Object.const_get(name)
-    claz.new({ :application => 'main', :options => options }).install
+    claz.new({ :application => 'main', :options => options }).install_me
   when 'options'
     ARGV.shift
     claz = Object.const_get(ARGV.shift)
@@ -316,10 +316,10 @@ begin
     appname = ARGV.shift
     load_application appname
     if ARGV.length > 0 then
-	  Application.submit appname, ARGV.shift
-	else
+      Application.submit appname, ARGV.shift
+    else
       Application.submit appname
-	end
+    end
   when 'tag'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new

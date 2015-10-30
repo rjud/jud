@@ -1,4 +1,4 @@
-require 'Tool'
+require 'tool'
 
 class MemcheckTool < Tool
   

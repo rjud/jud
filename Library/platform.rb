@@ -275,6 +275,15 @@ class Platform
     end
   end
   
+  def memcheck_tool
+    if Platform.is_linux? then
+      require 'valgrind'
+      Valgrind.new
+    else
+      nil
+    end
+  end
+  
   def self.nbcores
     case RbConfig::CONFIG['host_os']
     when /darwin9/

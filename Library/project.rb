@@ -514,11 +514,13 @@ class Project
     build_types.each do |bt|
       src = checkoutdir bt
       build = builddir bt
-      buildname = "#{@options[:version]} " if @options.has_key? :version
+      buildname = ""
+      buildname += "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
+      buildname += " #{bt}"
       @scm_tool.checkout src, self, @options if not File.directory? src
       patch_this bt
-      s = self.class.submit_tool.submit src, build, @install, bt, buildname, @options[:options]
+      s = self.class.submit_tool.submit self, src, build, @install, bt, buildname, @options[:options]
       status = s if s > status
       install_this bt
     end
