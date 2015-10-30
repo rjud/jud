@@ -53,7 +53,7 @@ class Project
     $src.join dir
   end
   
-  def srcdir build_type
+  def srcdir build_type = :Debug
     checkoutdir build_type
   end
   

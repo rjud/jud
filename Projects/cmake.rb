@@ -1,3 +1,5 @@
+require 'tarball'
+
 class CMake < Project
   
   cxx

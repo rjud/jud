@@ -144,7 +144,7 @@ when 'download' then
           if klass.configured? then
             puts (Platform.green "Try to download with #{klass.name}")
             scm = klass.new url
-            status = scm.checkout home
+            status = scm.checkout home, nil
             throw :download_ok if status[0].success?
           end
         rescue Platform::Error => e
