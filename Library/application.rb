@@ -106,17 +106,26 @@ module Application
     prj.deploy_this if prj.deploy_this?
   end
   
-  def submit appname
-    projects(appname).each do |proj|
-      prj = project(proj.name.to_sym)
-      if prj.class.submit_tool then
-        puts Platform.yellow("Build and test project " + proj.name)      
-        prj.submit
-      else
-        puts Platform.red("Not tool to submit #{proj.name}, so only build it")
-        prj.install_me
+  def submit appname, projname = nil, options={}
+    if projname.nil?
+      projects(appname).each do |prj|
+        submit_one prj, options
       end
+    else
+      prj = Object.const_get projname
+      submit_one prj, options
     end
+  end
+  
+  def submit_one proj, options={}
+    prj = project(proj.name.to_sym)
+    if prj.class.submit_tool then
+      puts Platform.yellow("Build and test project " + prj.name)
+      prj.submit options
+    else
+      puts Platform.red("Not tool to submit #{proj.name}, so only build it")
+      prj.install_me
+    end    
   end
   
   def upload appname, projname

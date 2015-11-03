@@ -8,6 +8,10 @@ class SubmitTool < Tool
   CONF_NOK = 3
   NOK = 4
   
+  EXPERIMENTAL = 0
+  NIGHTLY = 1
+  CONTINUOUS = 2
+  
   attr_accessor :build_tool, :scm_tool
   
   def initialize

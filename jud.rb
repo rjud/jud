@@ -235,17 +235,16 @@ begin
     
   case ARGV.first
   when 'help', nil
-    print 'jud' +
-      ' [branch <app> <branch>]' +
-      ' [build <conf>]' +
-      ' [submit <conf> [project]]' +
-      ' [deploy <conf> <proj>]' +
-      ' [install <app> [+<opt>]*[-<opt>]*]' +
-      ' [option <path1> <pathn>* <value>' +
-      ' [options <app>]' +
-      ' [tag <app> <tag>]' +
-      ' [tags <app>]' +
-      "\n"
+    puts 'jud'
+    puts ' [branch <app> <branch>]'
+    puts ' [build <application> [<project>]]'
+    puts ' [submit <application> [CONTINUOUS|EXPERIMENTAL|NIGHTLY] [project]]'
+    puts ' [deploy <application> <project>]'
+    puts ' [install <app> [+<opt>]*[-<opt>]*]'
+    puts ' [option <path1> <pathn>* <value>'
+    puts ' [options <project>]'
+    puts ' [tag <application> <tag>]'
+    puts ' [tags <application>]'
   when 'branch'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
@@ -315,11 +314,21 @@ begin
     ARGV.shift
     appname = ARGV.shift
     load_application appname
+    mode = SubmitTool::EXPERIMENTAL
     if ARGV.length > 0 then
-      Application.submit appname, ARGV.shift
-    else
-      Application.submit appname
+      arg = ARGV.shift
+      if arg == 'EXPERIMENTAL'
+        mode = SubmitTool::EXPERIMENTAL
+      elsif arg == 'CONTINUOUS'
+        mode = SubmitTool::CONTINUOUS
+      elsif arg == 'NIGHTLY'
+        mode = SubmitTool::NIGHTLY
+      else
+        prjname = arg
+      end
     end
+    prjname = ARGV.shift if ARGV.length > 0
+    Application.submit appname, prjname, { :mode => mode }
   when 'tag'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new

@@ -10,6 +10,7 @@ set(CTEST_CMAKE_GENERATOR "<%= $platform_config['CMake Generator'] %>")
 <% if $platform.memcheck_tool -%>
 set(CTEST_MEMORYCHECK_COMMAND "<%= $platform.memcheck_tool.path.gsub('\\', '/') %>")
 <% end -%>
+set(CTEST_COVERAGE_COMMAND "/usr/bin/gcov")
 
 set(CTEST_UPDATE_COMMAND "<%= @scm_tool.path.gsub('\\', '/') %>")
 
@@ -17,39 +18,64 @@ set(CTEST_INITIAL_CACHE "
   CMAKE_INSTALL_PREFIX:PATH=<%= prefix %>
   CMAKE_BUILD_TYPE:STRING=<%= build_type.to_s %>
   CMAKE_MAKE_PROGRAM:PATH=<%= $platform.cmake_native_build_tool.path.gsub('\\', '/') %>
-<% @build_tool.resolve_options(Context.new(prj, build_type), options).each do |opt| -%>
-  <%= opt.name %>:<%= opt.type %>=<%= @build_tool.option_to_s opt %>
+<% get_options(srcdir, builddir, prefix, build_type, prj, mode, options).each do |opt| -%>
+  <% if opt.enabled -%>
+    <%= opt.name %>:<%= opt.type %>=<%= (@build_tool.option_to_s opt).sub(/^"/,'').chomp('"') %>
+  <% end -%>
 <% end -%>
 ")
 
+<% if mode != SubmitTool::CONTINUOUS %>
 ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
+<% end -%>
 
 file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" "${CTEST_INITIAL_CACHE}")
 
-ctest_start("Experimental")
-ctest_update()
-
-ctest_configure(RETURN_VALUE res)
-if(NOT res EQUAL 0)
-  ctest_submit()
-  message(FATAL_ERROR "!!!! Configuration failed !!!!")
-endif()
-
-ctest_build(RETURN_VALUE res)
-if(NOT res EQUAL 0)
-  ctest_submit()
-  message(FATAL_ERROR "!!!! Build failed !!!!")
-endif()
-
-ctest_test(RETURN_VALUE res)
-
-<% if $platform.memcheck_tool and build_type == :Debug -%>
-ctest_memcheck()
+<% if mode == SubmitTool::CONTINUOUS %>
+while (${CTEST_ELAPSED_TIME} LESS 43200) # 12 hours
+  set (START_TIME ${CTEST_ELAPSED_TIME})
 <% end -%>
 
-if(NOT res EQUAL 0)
-  ctest_submit()
-  message(FATAL_ERROR "!!!! Some tests failed !!!!")
-endif()
+  ctest_start("<%= CTest.modes[mode]%>")
+  ctest_update(RETURN_VALUE nb_updates)
 
-ctest_submit()
+<% if mode == SubmitTool::CONTINUOUS %>
+  if (nb_updates GREATER 0)
+<% end -%>
+
+    ctest_configure(RETURN_VALUE res)
+    if(NOT res EQUAL 0)
+      ctest_submit()
+      message(FATAL_ERROR "!!!! Configuration failed !!!!")
+    endif()
+
+    ctest_build(RETURN_VALUE res)
+    if(NOT res EQUAL 0)
+      ctest_submit()
+      message(FATAL_ERROR "!!!! Build failed !!!!")
+    endif()
+
+    ctest_test(RETURN_VALUE res)
+
+    <% if $platform.memcheck_tool and build_type == :Debug and mode != SubmitTool::CONTINUOUS -%>
+    ctest_memcheck()
+    <% end -%>
+    
+    <% if Platform.is_linux? and build_type == :Debug and mode == SubmitTool::NIGHTLY -%>
+    ctest_coverage()
+    <% end -%>
+
+    if(NOT res EQUAL 0)
+      ctest_submit()
+      message(FATAL_ERROR "!!!! Some tests failed !!!!")
+    endif()
+
+    ctest_submit()
+
+  <% if mode == SubmitTool::CONTINUOUS %>
+  endif ()
+  
+  ctest_sleep(300)
+  
+endwhile()
+<% end -%>
