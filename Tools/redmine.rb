@@ -32,7 +32,7 @@ class Redmine < RepositoryTool
       passwords['password'] = ''
       #config['proxy_host'] = ''
       #config['proxy_port'] = ''
-      raise Error, "Please, edit #{Jud::Config.instance.filename.to_s} to set username and password for redmine server #{@url}."
+      raise Error, "Please, edit #{Jud::Config.instance.config_file.filename.to_s} and #{Jud::Config.instance.passwords_file.filename.to_s} to set username and password for redmine server #{@url}."
     end
     
   end

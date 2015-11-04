@@ -11,7 +11,6 @@ module Jud
     
     attr_accessor :config, :passwords
     attr_reader :config_file, :passwords_file
-    private :config_file, :passwords_file
     
     def initialize()
       @config_file = Jud::ConfigurationFile.new('config.yml')

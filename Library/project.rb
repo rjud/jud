@@ -53,7 +53,7 @@ class Project
     $src.join dir
   end
   
-  def srcdir build_type
+  def srcdir build_type = :Debug
     checkoutdir build_type
   end
   
@@ -511,7 +511,7 @@ class Project
     register_this
   end
   
-  def submit
+  def submit options={}
     # Variables
     self.class.submit_tool.build_tool = self.class.build_tool
     self.class.submit_tool.scm_tool = self.class.scm_tool
@@ -524,11 +524,13 @@ class Project
     build_types.each do |bt|
       src = checkoutdir bt
       build = builddir bt
-      buildname = "#{@options[:version]} " if @options.has_key? :version
+      buildname = ""
+      buildname += "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
+      buildname += " #{bt}"
       @scm_tool.checkout src, self, @options if not File.directory? src
       patch_this bt
-      s = self.class.submit_tool.submit src, build, @install, bt, buildname, @options[:options]
+      s = self.class.submit_tool.submit self, src, build, @install, bt, buildname, options[:mode], @options[:options]
       status = s if s > status
       install_this bt
     end

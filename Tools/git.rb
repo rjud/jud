@@ -24,6 +24,10 @@ class Git < SCMTool
     cmd = nil
     if options.has_key? :tag then
       cmd = "\"#{path}\" checkout #{options[:tag]}"
+      Platform.execute cmd, {:wd => src}.merge(options)
+    elsif options.has_key? :branch then
+      cmd = "\"#{path}\" checkout #{options[:branch]}"
+      Platform.execute cmd, {:wd => src}.merge(options)
     elsif options.has_key? :version then
       cmd = "\"#{path}\" checkout #{tag_of_version options[:version]}"
     end

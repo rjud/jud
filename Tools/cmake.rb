@@ -45,31 +45,39 @@ module Jud
         if $platform_config.include? 'CMake Generator' then
           cmd += ' -G "' + $platform_config['CMake Generator'] + '"' 
         end
-        #if $platform_config.include? 'CMake System Name' then
-        #  cmd += ' -DCMAKE_SYSTEM_NAME=' + $platform_config['CMake System Name']
-        #end
-        cmd += ' -DCMAKE_INSTALL_PREFIX=' + install.to_s
-        cmd += ' -DCMAKE_DEBUG_POSTFIX=d' if build_type == :Debug
-        cmd += ' -DCMAKE_BUILD_TYPE=' + build_type.to_s
-        if Platform.is_linux? and Platform.is_64? then
-          cmd += ' -DCMAKE_CXX_FLAGS=-fPIC'
-        end
-        # Set dependencies
-        if prj.depends.size > 0 then
-          cmd += ' -DCMAKE_PREFIX_PATH="'
-          prj.depends.each do |d|
-            p = prj.project(d.name.to_sym)
-            cmd += p.prefix.to_s + ';'
-            p.lookin.each { |lk| cmd += lk.to_s + ';' }
+        get_options(src, build, install, build_type, prj, options).each do |opt|
+          if opt.enabled
+            final_value = option_to_s opt
+            puts (Platform.yellow "#{opt.name}: #{final_value}")
+            cmd += ' -D' + opt.name + '=' + final_value
           end
-          cmd += '"'
-        end
-        context = Context.new(prj, build_type)
-        resolve_options(context, options).each do |opt|
-          cmd += ' -D' + opt.name + '=' + (option_to_s opt)
         end
         cmd += ' ' + src.to_s
         Platform.execute cmd, wd: build
+      end
+      
+      def get_options src, build, install, build_type, prj, options={}
+        resolved_options = []
+        #if $platform_config.include? 'CMake System Name' then
+        #  cmd += ' -DCMAKE_SYSTEM_NAME=' + $platform_config['CMake System Name']
+        #end
+        resolved_options << ResolvedOption.new('CMAKE_INSTALL_PREFIX', :PATH, true, install.to_s, nil)
+        resolved_options << ResolvedOption.new('CMAKE_DEBUG_POSTFIX', :STRING, build_type == :Debug, 'd', nil)
+        resolved_options << ResolvedOption.new('CMAKE_BUILD_TYPE', :STRING, true, build_type.to_s, nil)
+        resolved_options << ResolvedOption.new('CMAKE_CXX_FLAGS', :STRING, (Platform.is_linux? and Platform.is_64?), '-fPIC', nil)
+        if prj.depends.size > 0 then
+          value = '"'
+          prj.depends.each do |d|
+            p = prj.project(d.name.to_sym)
+            value += p.prefix.to_s + ';'
+            p.lookin.each { |lk| cmd += lk.to_s + ';' }
+          end
+          value += '"'
+          resolved_options << ResolvedOption.new('CMAKE_PREFIX_PATH', :STRING, true, value, nil)
+        end
+        context = Context.new prj, build_type
+        resolved_options += resolve_options(context, options)
+        resolved_options        
       end
       
       def build *args

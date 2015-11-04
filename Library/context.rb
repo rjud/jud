@@ -1,7 +1,7 @@
 class Context
   
   attr_accessor :prj, :name, :debug, :release, :src, :build, :prefix
-  attr_accessor :version, :major, :minor, :release
+  attr_accessor :version, :major, :minor, :release, :nbcores
   
   def initialize prj, build_type
     @prj = prj
@@ -12,6 +12,7 @@ class Context
     @build = prj.builddir build_type
     @prefix = prj.prefix
     @version = prj.options[:version]
+    @nbcores = Platform.nbcores
     if not @version.nil?
       ver = Jud::Version.new @version
       @major, @minor, @release = ver.major, ver.minor, ver.release
@@ -53,7 +54,7 @@ class Context
   
   def run exe, *args
     cmd = exe.to_s
-    args[0].each do |a|
+    args.each do |a|
       cmd += " #{a.to_s}"
     end
     Platform.execute cmd
