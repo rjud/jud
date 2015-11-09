@@ -2,8 +2,8 @@ require 'tool'
 
 class MemcheckTool < Tool
   
-  def initialize
-    super()
+  def initialize config
+    super config
   end
   
 end

@@ -1,15 +1,15 @@
 require 'memcheck_tool'
 
-class Valgrind < MemcheckTool
-  
-  class << self
-    def variants; return [Platform::UNIX]; end
+module Jud::Tools
+  class Valgrind < MemcheckTool
+    
+    class << self
+      def variants; return [Platform::UNIX]; end
+    end
+    
+    def initialize config={}
+      super config
+    end
+    
   end
-  
-  Valgrind.configure
-  
-  def initialize
-    super()
-  end
-  
 end

@@ -1,20 +1,20 @@
 require 'c'
+require 'cxx'
+require 'compiler'
 
-class GCC < Jud::C::Compiler
-  
-  class << self
-        
-    def load_path; false; end
+module Jud::Tools
+  class GCC < Jud::Compiler
     
-    def variants; return [Platform::UNIX]; end
+    include Jud::Languages::C
+    include Jud::Languages::Cxx
     
-    #def extra_configure config
-    #end
-        
+    class << self
+      def variants; return [Platform::UNIX]; end    
+    end
+    
+    def initialize config={}
+      super config
+    end
+    
   end
-  
-  def initialize config = {}
-    super()
-  end
-  
 end

@@ -1,12 +1,14 @@
 require 'make'
 require 'cl'
 
-class NMake < Make
-  
-  NMake.configure
-  
-  def initialize options = {}
-    super()
+module Jud::Tools
+  class NMake < Make
+    
+    # See Cl.configure for NMake configuration.
+    
+    def initialize options={}
+      super options
+    end
+    
   end
-  
 end

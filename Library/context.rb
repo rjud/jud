@@ -1,5 +1,7 @@
 class Context
   
+  EnvironmentVariable = Struct.new(:var, :value, :append)
+  
   attr_accessor :prj, :name, :debug, :release, :src, :build, :prefix
   attr_accessor :version, :major, :minor, :release, :nbcores
   
@@ -17,6 +19,8 @@ class Context
       ver = Jud::Version.new @version
       @major, @minor, @release = ver.major, ver.minor, ver.release
     end
+    @environments = []
+    @old_environments = {}
   end
   
   def debug?; @debug; end
@@ -49,6 +53,7 @@ class Context
   end
   
   def export var, value
+    setenv var, value
     ENV[var] = value.to_s
   end
   
@@ -58,6 +63,40 @@ class Context
       cmd += " #{a.to_s}"
     end
     Platform.execute cmd
+  end
+  
+  def push
+    @environments.each do |variable|
+      if ENV[variable.var].nil? || (not variable.append)
+        ENV[variable.var] = variable.value
+      else
+        ENV[variable.var] = variable.value + ";" + ENV[variable.var]
+      end
+    end
+  end
+  
+  def pop
+    @old_environments.each do |var, value|
+      if value.nil?
+        ENV.delete var
+      else
+        ENV[var] = value
+      end
+    end
+    @old_environments = {}
+  end
+  
+  def setenv var, value, append=false
+    unless @old_environments.key? var
+      oldvalue = ENV[var]
+      @old_environments[var] = oldvalue
+      @environments << EnvironmentVariable.new(var, oldvalue, false) if append
+    end
+    @environments << EnvironmentVariable.new(var, value.to_s, append)
+  end
+  
+  def appenv var, value
+    setenv var, value, true
   end
   
   def project sym

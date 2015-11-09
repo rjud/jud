@@ -12,7 +12,7 @@ module Jud
       end
 	  
       def languages
-        [Jud::Java]
+        [Jud::Languages::Java]
       end
       
     end

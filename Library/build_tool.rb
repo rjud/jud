@@ -4,12 +4,9 @@ class BuildTool < Tool
   
   Option = Struct.new(:desc, :type, :default, :cond, :confcond)
   ResolvedOption = Struct.new(:name, :type, :enabled, :value, :confcond)
-  
-  attr_reader :options
-  
-  def initialize options = {}
-    super()
-    @options = options
+    
+  def initialize options={}
+    super options
   end
   
   def project sym

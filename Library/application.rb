@@ -7,6 +7,7 @@ module Application
   def prj sym, args={}, &block
     $arguments[sym] = { :application => self.to_s, :options => {} }
     $arguments[sym].merge! args
+    load ($home + 'Projects' + "#{sym.to_s.downcase}.rb").to_s
     $projects = []
   end
   

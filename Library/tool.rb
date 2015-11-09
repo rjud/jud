@@ -8,36 +8,53 @@ class Tool
     
     attr_reader :path
     
-    def basename; name.downcase; end
     def projectname; name; end
+    def toolname klass
+      if /^Jud::Tools::(?<myname>.*)$/ =~ klass.name
+        myname
+      else
+        nil
+      end
+    end
     
     def variants; return [Platform::UNIX, Platform::WIN32]; end
     
     def load_path; return true; end
+    def pure_ruby; return false; end
     
-    def get_config
-      if $platform_config then
-        unless $platform_config['tools'].include? name then
-          $platform_config['tools'][name] = name
+    #def get_tool_configuration name
+    #  $tools_config[name]
+    #end
+    
+    #def get_tool_configurations klass
+    #  $tools_config.each do |name, configuration|
+    #    tlname = (configuration.key? 'instanceof') ? configuration['instanceof'] : name
+    #  end
+    #end
+    
+    #def get_passwords
+    #  if $platform_config then
+    #    unless $platform_config['tools'].include? name then
+    #      $platform_config['tools'][name] = name
+    #    end
+    #    return $tools_passwords[$platform_config['tools'][name]]
+    #  else
+    #    return $tools_passwords[name]
+    #  end
+    #end
+    
+    def configure name=nil, exe=nil
+      tlname = name.nil? ? (toolname self) : name
+      unless tlname.nil? then
+        exename = exe.nil? ? tlname.downcase : exe
+        Platform.find_executables(exename).each do |path|
+          Platform.putfinds tlname, path
+          save_config_property tlname, 'path', path    
         end
-        return $tools_config[$platform_config['tools'][name]]
-      else
-        return $tools_config[name]
       end
     end
     
-    def get_passwords
-      if $platform_config then
-        unless $platform_config['tools'].include? name then
-          $platform_config['tools'][name] = name
-        end
-        return $tools_passwords[$platform_config['tools'][name]]
-      else
-        return $tools_passwords[name]
-      end
-    end
-    
-    def configure
+    def oldconfigure
       puts (Platform.blue "Configure #{self.name}")
       # Get the current configuration of this tool
       config = get_config
@@ -117,18 +134,38 @@ class Tool
       end
     end
     
+    def get_configuration toolname
+      unless $tools_config.include? toolname
+        $tools_config[toolname]['instanceof'] = toolname self
+      end
+      if $tools_config[toolname].nil? or $tools_config[toolname].empty?
+        $tools_config[toolname]['instanceof'] = toolname self
+      end
+      $tools_config[toolname]
+    end
+    
+    def save_config_property toolname, name, value
+      config = get_configuration toolname
+      old_value = config[name]
+      new_value = value.to_s
+      if new_value != old_value
+        config[name] = new_value
+        puts (Platform.green "Set #{toolname}.#{name} to #{config[name]}")
+      end
+    end
+    
   end
   
-  attr_reader :config, :passwords, :options
+  attr_reader :path, :config, :passwords, :options, :name, :version
   
   def initialize options={}
-    @config = self.class.get_config
-    @passwords = self.class.get_passwords
+    (name, config) = $platform.get_tool_config (Tool.toolname self.class)
+    config = config.merge ({ :options => options })
+    @name = name
+    @config = config
+    #@passwords = self.class.get_passwords
     @options = options
-  end
-  
-  def path
-    self.class.path.to_s
+    @path = (@config.key? 'path') ? @config['path'] : nil
   end
   
 end

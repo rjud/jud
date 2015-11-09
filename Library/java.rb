@@ -1,14 +1,6 @@
-require 'compiler'
 require 'language'
 
-module Jud
-  class Java < Language;
-    
-    class Compiler < Jud::Compiler; end
-    
-    class << self
-      def compiler; return Compiler; end
-    end
-    
+module Jud::Languages::Java
+  class Language < Jud::Language
   end
 end

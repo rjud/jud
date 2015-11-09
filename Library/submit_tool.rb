@@ -14,8 +14,8 @@ class SubmitTool < Tool
   
   attr_accessor :build_tool, :scm_tool
   
-  def initialize
-    super()
+  def initialize config
+    super config
   end
   
 end

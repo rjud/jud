@@ -1,11 +1,6 @@
 require 'tool'
 
 module Jud
-  class Compiler < Tool
-    
-    def initialize
-      super()
-    end
-    
+  class Compiler < Tool   
   end
 end

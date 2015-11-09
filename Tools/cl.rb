@@ -1,87 +1,136 @@
+require 'compiler'
 require 'c'
+require 'cxx'
+require 'version'
 require 'win32_utilities'
 
-class Cl < Jud::C::Compiler
+class Cl < Jud::Compiler
+  
+  include Jud::Languages::C
+  include Jud::Languages::Cxx
   
   class << self
     
-    attr_reader :vc_install_dir, :vs_install_dir, :vc_common_tools_dir
-    attr_reader :framework_dir, :windows_sdk_dir
+    def configure
+      [ 'SOFTWARE', 'SOFTWARE\Wow6432' ].each do |registry|
+        begin
+          vcpath = registry + '\Microsoft\VisualStudio\SxS\VC7' 
+          begin
+            Win32::Registry::HKEY_LOCAL_MACHINE.open(vcpath) do |reg|
+              puts "Read registry entry #{vcpath}"
+              reg.each_value do |name, _, data|
+                if /^\d+.\d+$/ =~ name
+                  version = Jud::Version.new name
+                  Platform.putfinds "Cl#{version.major}", data
+                  require "cl#{version.major}"
+                  ['x86', 'x64'].each do |arch|
+                    tool = Object.const_get("Jud::Tools::Cl#{version.major}")
+                    tool.initialize_from_registry "Cl#{version.major} (#{arch})", registry, version, arch
+                  end
+                end
+              end
+            end
+          rescue Encoding::UndefinedConversionError => e
+            puts "Undefined conversion error while reading registry:\n  #{e}"
+          end
+        rescue Win32::Registry::Error => e
+          puts "Skip registry entry #{vcpath}:\n  #{e.message}"
+        end
+      end
+    end
     
-    def load_path; false; end
+    def initialize_from_registry toolname, registry, version, arch
+      # Visual Compiler
+      reg_name = registry + '\Microsoft\VisualStudio\SxS\VC7'
+      vc_install_dir = Pathname.new reg_query reg_name, version.to_s
+      # Visual Studio tools
+      reg_name = registry + '\Microsoft\VisualStudio\SxS\VS7'
+      vs_install_dir = Pathname.new reg_query reg_name, version.to_s
+      # Additional DLLs
+      reg_name = registry + "\\Microsoft\\AppEnv\\#{version.to_s}"
+      additional_dll_dir = Pathname.new reg_query reg_name, 'AdditionalDllsFolder'
+      # VS Common tools
+      comntools = "VS#{version.major}#{version.minor}COMNTOOLS"
+      vs_common_tools_dir =
+        if ENV.key? comntools then
+          ENV[comntools]
+        else
+          vs_install_dir.join 'Common7', 'Tools'
+        end
+      # Framework
+      reg_name = registry + '\Microsoft\VisualStudio\SxS\VC7'
+      dir = reg_query reg_name, arch == 'x86' ? 'FrameworkDir32' : 'FrameworkDir64'
+      ver = reg_query reg_name, arch == 'x86' ? 'FrameworkVer32' : 'FrameworkVer64'
+      framework_dir = File.join dir, ver        
+      # Save in the config file
+      save_config_property toolname, 'VCInstallDir', vc_install_dir
+      save_config_property toolname, 'VSInstallDir', vs_install_dir
+      save_config_property toolname, 'VSCommonToolsDir', vs_common_tools_dir
+      save_config_property toolname, 'FrameworkDir', framework_dir
+      save_config_property toolname, 'AdditionalDllDir', additional_dll_dir
+      # NMake
+      old_path = ENV['PATH']
+      ENV['PATH'] = (vc_install_dir + 'bin').to_s + ';' + ENV['PATH']
+      Jud::Tools::NMake.configure "NMake#{version.major}", 'nmake'
+      ENV['PATH'] = old_path
+    end
     
     def variants; return [Platform::WIN32]; end
     
-    def extra_configure config
-      # Configure
-      configure_directory config, 'VCInstallDir', lambda { get_vc_install_dir }
-      configure_directory config, 'VSInstallDir', lambda { get_vs_install_dir }
-      configure_directory config, 'VSCommonToolsDir', lambda { get_vs_common_tools_dir }
-      configure_directory config, 'WindowsSdkDir', lambda { get_windows_sdk_dir }
-      configure_directory config, 'FrameworkDir', lambda { get_framework_dir }
-      configure_directory config, 'AdditionalDllDir', lambda { get_additional_dll_dir }
-      # Get the final configuration
-      @vc_install_dir = get_directory config, 'VCInstallDir'
-      @vs_install_dir = get_directory config, 'VSInstallDir'
-      @vs_common_tools_dir = get_directory config, 'VSCommonToolsDir'
-      @windows_sdk_dir = get_directory config, 'WindowsSdkDir'
-      @framework_dir = get_directory config, 'FrameworkDir'
-      @additional_dll_dir = get_directory config, 'AdditionalDllDir'
-      # Load environment
-      # Microsoft Visual Studio
-      path = File.join(@vs_install_dir, 'Common7', 'IDE')
-      # Microsoft Visual Studio Common Tools
-      path << ';' << @vs_common_tools_dir
-      # Microsoft Visual Compiler
-      path << ';' << File.join(@vc_install_dir, 'BIN')
-      # MSPDB DLLs (for CMake 3)
-      path << ';' << @additional_dll_dir
-      # We may add VCPackages to path
-      ENV['INCLUDE'] = File.join(@vc_install_dir, 'INCLUDE')
-      ENV['LIB'] = File.join(@vc_install_dir, 'LIB')
-      ENV['LIBPATH'] = File.join(@vc_install_dir, 'LIB')
-      # Microsoft SDK
-      if @windows_sdk_dir then
-        path << ";" << File.join(@windows_sdk_dir, 'bin')
-        path << ";" << File.join(@windows_sdk_dir, 'bin', 'x86') # WIN7 + MSVC11
-        ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include')
-        ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include', 'shared') # WIN7 + MSVC11
-        ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include', 'winrt') # WIN7 + MSVC11
-        ENV['INCLUDE'] += ";" << File.join(@windows_sdk_dir, 'include', 'um') # WIN7 + MSVC11
-        ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib')
-        ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib', 'win8', 'um', 'x86') # WIN7 + MSVC11 (JBE)
-        ENV['LIB'] += ";" << File.join(@windows_sdk_dir, 'lib', 'winv6.3', 'um', 'x86') # WIN7 + MSVC12 (LBA)
-      end
-      # Framework .NET (to have msbuild)
-      path << ";" << @framework_dir
-      # Set new environment
-      ENV['PATH'] = path << ";" << ENV['PATH']
-    end
-    
-    def get_vs_install_dir
-	  begin
-        return Pathname.new reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VS7', version)
-      rescue Win32::Registry::Error
-	    return Pathname.new reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VS7', version)
-	  end
-	end
-    
-    def get_vc_install_dir
-	  begin
-        return Pathname.new reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', version)
-      rescue Win32::Registry::Error
-	    return Pathname.new reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', version)
-	  end
-    end
-    
-    def get_additional_dll_dir # Only for CMake
-      return Pathname.new reg_query('SOFTWARE\Wow6432Node\Microsoft\AppEnv\\' + version, 'AdditionalDllsFolder')
-    end
-    
   end
   
-  def initialize config = {}
-    super()
+  attr_reader :vc_install_dir, :vs_install_dir, :vc_common_tools_dir
+  attr_reader :additional_dll_dir, :framework_dir, :windows_sdk_dir
+  attr_reader :version
+  
+  def initialize options={}
+    super options
+    @vc_install_dir = Pathname.new @config['VCInstallDir']
+    @vs_install_dir = Pathname.new @config['VSInstallDir']
+    @vs_common_tools_dir = Pathname.new @config['VSCommonToolsDir']
+    @additional_dll_dir = Pathname.new @config['AdditionalDllDir']
+    @framework_dir = Pathname.new @config['FrameworkDir']
+    @windows_sdk_dir = Pathname.new @config['WindowsSdkDir']
+  end
+  
+  def setenv context
+    
+    # Setting PATH
+    
+    # Microsoft Visual Studio Tools        
+    context.appenv 'PATH', @vs_install_dir + 'Common7' + 'IDE'
+    # Microsoft Visual Studio Common Tools
+    context.appenv 'PATH', @vs_common_tools_dir
+    # Microsoft Visual Compiler
+    context.appenv 'PATH', @vc_install_dir + 'BIN'
+    # MSPDB DLLs (for CMake 3)
+    context.appenv 'PATH', @additional_dll_dir
+    # Framework .NET (to have msbuild)
+    context.appenv 'PATH', @framework_dir
+    # Microsoft SDK
+    if @windows_sdk_dir
+      context.appenv 'PATH', @windows_sdk_dir + 'bin'
+      context.appenv 'PATH', @windows_sdk_dir + 'bin' + 'x86' # WIN7 + MSVC11
+    end
+    
+    # Setting INCLUDE
+    context.setenv 'INCLUDE', @vc_install_dir + 'INCLUDE'
+    context.appenv 'INCLUDE', @windows_sdk_dir + 'include'
+    context.appenv 'INCLUDE', @windows_sdk_dir + 'include' + 'shared' # WIN7 + MSVC11
+    context.appenv 'INCLUDE', @windows_sdk_dir + 'include' + 'winrt'  # WIN7 + MSVC11
+    context.appenv 'INCLUDE', @windows_sdk_dir + 'include' + 'um'     # WIN7 + MSVC11
+    
+    # Setting LIB
+    context.setenv 'LIB', @vc_install_dir + 'LIB'
+    if @windows_sdk_dir
+      context.appenv 'LIB', @windows_sdk_dir + 'lib'
+      context.appenv 'LIB', @windows_sdk_dir + 'lib' + 'win8' + 'um' + 'x86'    # WIN7 + MSVC11 (JBE)
+      context.appenv 'LIB', @windows_sdk_dir + 'lib' + 'winv6.3' + 'um' + 'x86' # WIN7 + MSVC12 (LBA)
+    end
+    
+    # Setting LIBPATH
+    context.setenv 'LIBPATH', @vc_install_dir + 'LIB'
+    
   end
   
 end

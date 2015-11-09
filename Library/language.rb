@@ -1,1 +1,6 @@
-class Language; end
+module Jud
+  module Languages
+  end
+  class Language
+  end
+end

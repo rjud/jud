@@ -22,6 +22,14 @@ class Project
       @major, @minor, @revision = @options[:version].split '.'
       @options.merge! ({ :major => @major, :minor => @minor, :revision => @revision})
     end
+    @contexts = {}
+    build_types.each do |bt|
+      @contexts[bt] = Context.new(self, bt)
+      self.class.languages.each do |language|
+        compiler = $platform.get_compiler language
+        compiler.setenv @contexts[bt]
+      end
+    end
   end
   
   def project sym
@@ -80,6 +88,22 @@ class Project
       prefix = $install.join @options[:application]
     end
     prefix
+  end
+  
+  def bindir
+    self.class.bin_dir.nil? ? prefix + 'bin' : self.class.bin_dir
+  end
+  
+  def datadir
+    self.class.data_dir.nil? ? prefix + 'share' : self.class.data_dir
+  end
+  
+  def includedir
+    self.class.include_dir.nil? ? prefix + 'include' : self.class.include_dir
+  end
+  
+  def libdir
+    self.class.lib_dir.nil? ? prefix + 'lib' : self.class.lib_dir
   end
   
   # All dependencies (by recursion) after applying conditions
@@ -216,6 +240,9 @@ class Project
     puts (Platform.blue "Load environment")
     load_binenv
     load_libenv
+  end
+  
+  def print_env
     puts (Platform.yellow "PATH: #{ENV['PATH']}")
     if Platform.is_linux? then
       puts (Platform.yellow "LD_LIBRARY_PATH: #{ENV['LD_LIBRARY_PATH']}")
@@ -266,7 +293,7 @@ class Project
   def checkout_this build_type
     src = checkoutdir build_type
     if not File.directory? src then
-	  puts (Platform.red "Can't find the sources of #{name} in the directory #{src}")
+      puts (Platform.red "Can't find the sources of #{name} in the directory #{src}")
       safe = (not self.class.alternate_scm_tool.nil?)
       if not @scm_tool.nil?
         @scm_tool.checkout src, self, @options.merge({:safe => safe})
@@ -340,7 +367,7 @@ class Project
       self.class.build_tool.configure src, build, @install, build_type, self, @options[:options]
     else
       Dir.chdir build
-      Context.new(self, build_type).instance_eval &self.class.configure_block
+      @contexts[build_type].instance_eval &self.class.configure_block
     end
   end
   
@@ -355,7 +382,7 @@ class Project
       self.class.build_tool.build build, @options[:options]
     else
       Dir.chdir build
-      Context.new(self, build_type).instance_eval &self.class.build_block
+      @contexts[build_type].instance_eval &self.class.build_block
     end
   end
   
@@ -366,7 +393,7 @@ class Project
       self.class.build_tool.install (Pathname.new build)
     else
       Dir.chdir build
-      Context.new(self, build_type).instance_eval &self.class.install_block
+      @contexts[build_type].instance_eval &self.class.install_block
     end
   end
   
@@ -479,9 +506,13 @@ class Project
     if Platform.is_windows?
       installed_files.each do |f|
         old = f.sub usr.to_s, prefix.to_s
-        if (File.mtime old) > (File.mtime f)
-          puts (Platform.blue "Updating #{f}")
-          FileUtils.copy_file old, f 
+        begin
+          if (File.mtime old) > (File.mtime f)
+            puts (Platform.blue "Updating #{f}")
+            FileUtils.copy_file old, f 
+          end
+        rescue Errno::ENOENT => e
+          puts (Platform.red e)
         end
       end
     end
@@ -499,11 +530,14 @@ class Project
     install_dependencies
     load_env
     build_types.each do |bt|
+      @contexts[bt].push
+      print_env
       checkout_this bt
       patch_this bt
       configure_this bt
       build_this bt
       install_this bt
+      @contexts[bt].pop
     end
     pack_this if pack_this?
     upload_this if upload_this?
@@ -621,7 +655,7 @@ class Project
   
   class << self
     
-    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :binenv, :libenv, :configure_block, :build_block, :install_block, :in_source
+    attr_reader :scm_tool, :alternate_scm_tool, :languages, :build_tool, :submit_tool, :repository, :binenv, :libenv, :configure_block, :build_block, :install_block, :in_source, :bin_dir, :data_dir, :include_dir, :lib_dir
     
     def languages
       @languages ||= []
@@ -657,17 +691,17 @@ class Project
     
     def c
       require 'c'
-      languages << Jud::C
+      languages << Jud::Languages::C
     end
     
     def cxx
       require 'cxx'
-      languages << Jud::Cxx
+      languages << Jud::Languages::Cxx
     end
     
     def java
-	  require 'java'
-      languages << Jud::Java
+      require 'java'
+      languages << Jud::Languages::Java
     end
     
     def ant &block
@@ -678,7 +712,7 @@ class Project
     
     def autotools &block
       require 'autotools'
-      @build_tool = AutoTools.new
+      @build_tool = Jud::Tools::AutoTools.new
       @build_tool.instance_eval &block if block_given?
     end
     
@@ -690,45 +724,45 @@ class Project
     
     def ctest &block
       require 'ctest'
-      @submit_tool = CTest.new
+      @submit_tool = Jud::Tools::CTest.new
       @submit_tool.instance_eval &block if block_given?
     end
     
     def cvs url, modulename
       require 'cvs'
-      @scm_tool = CVS.new url, modulename
+      @scm_tool = Jud::Tools::CVS.new url, modulename
     end
     
     def eclipse &block
       require 'eclipse'
-      @build_tool = Eclipse.new
+      @build_tool = Jud::Tools::Eclipse.new
       @build_tool.instance_eval &block if block_given?
     end
     
     def git url, options={}
       require 'git'
-      @scm_tool = Git.new url, options
+      @scm_tool = Jud::Tools::Git.new url, options
     end
     
     def nmake &block
       require 'nmake'
-      @build_tool = NMake.new
+      @build_tool = Jud::Tools::NMake.new
       @build_tool.instance_eval &block if block_given?
     end
     
     def redmine url, projectid
       require 'redmine'
-      @repository = Redmine.new url, projectid
+      @repository = Jud::Tools::Redmine.new url, projectid
     end
     
     def svn url, options={}
       require 'svn'
-      @scm_tool = SVN.new url, options
+      @scm_tool = Jud::Tools::SVN.new url, options
     end
     
-    def wget url, packtool, options={}
+    def wget url, options={}
       require 'wget'
-      @alternate_scm_tool = Wget.new url, packtool, options
+      @alternate_scm_tool = Jud::Tools::Wget.new url, options
     end
 
     def configure &block
@@ -741,6 +775,22 @@ class Project
 
     def install &block
       @install_block = block_given? ? block : nil
+    end
+
+    def bindir path
+      @bin_dir = path
+    end
+    
+    def datadir path
+      @data_dir = path
+    end
+    
+    def includedir path
+      @include_dir = path
+    end
+    
+    def libdir path
+      @lib_dir = path
     end
     
   end

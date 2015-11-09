@@ -21,6 +21,11 @@ class Platform
   def self.cyan text; colorize text, "\033[36m"; end
   def self.gray text; colorize text, "\033[37m"; end
   
+  def self.putfinds name, value
+    dots = "." * (15 - name.size < 0 ? 0 : 15 - name.size)
+    puts (Platform.green "Found #{name}#{dots}#{value}")
+  end
+  
   def self.create repository, name
     repo_config = Jud::Config.instance.get_repo_config repository
     prefix = Pathname.new repo_config['dir']
@@ -51,6 +56,8 @@ class Platform
   def initialize name
     @name = name
     @config = Jud::Config.instance.get_platform_config name
+    @tool_configs = {}
+    @language_to_compiler = {}
     @repo_config = Jud::Config.instance.get_repo_config @config['repository']
     @language_to_composite = {}
     prefix = Pathname.new @repo_config['dir']
@@ -60,6 +67,18 @@ class Platform
     $install = path_from_config 'install', (Platform.default_install prefix)
     $packdir = path_from_config 'packages', (Platform.default_packages prefix)
     $trash = path_from_config 'trash', (Platform.default_trash prefix)
+    load_tool_configs
+  end
+  
+  def load_tool_configs
+    $tools_config.each do |name, config|
+      instanceof = config['instanceof']
+      if @tool_configs.key? instanceof
+        @tool_configs[instanceof] << [name, config]
+      else
+        @tool_configs[instanceof] = [[name, config]]
+      end
+    end
   end
   
   def path_from_config var, default
@@ -117,40 +136,68 @@ class Platform
     Object.const_get(tool).new(tool)
   end
   
-  #def get_compiler language
-  #  compiler_typenames = subsubclasses(language.class.compiler).collect{ |compiler| compiler.name }
-  #  config = @config['tools'].each_key do |name|
-  #    if compiler_typenames.include? name then
-  #      tool = Object.const_get(name).new(name)
-  #      puts (Platform.green "Found compiler #{tool.name} for language #{language.class.name}")
-  #      return tool
-  #    end
-  #  end
-  #  puts (Platform.red "Can't find compiler for language #{language.class.name}")
-  #end
-  
-  def load_tool name
-    load $juddir.join('Tools', name.downcase + '.rb').to_s
+  def get_compiler language
+    
+    configs = []
+    found_compiler = nil
+
+    return @language_to_compiler[language] if @language_to_compiler.key? language
+    
+    @tool_configs.each do |toolclass, tools|
+      tools.each do |tool|
+        name, config = tool[0], tool[1]
+        instanceof = config['instanceof']
+        load ($juddir + 'Tools' + "#{instanceof.downcase}.rb").to_s
+        toolclass = Object.const_get "Jud::Tools::#{instanceof}"
+        configs << [toolclass, name, config] if toolclass < language
+      end
+    end
+    
+    if configs.size == 0
+      puts (Platform.red "Can't find compiler for language #{language}")
+      abort
+    elsif configs.size == 1
+      compiler, name, config = configs[0][0], configs[0][1], configs[0][2]
+      puts (Platform.green "Found compiler #{name} for language #{language}")
+      found_compiler = compiler.new
+    else
+      configs.each do | value |
+        compiler, name, config = value[0], value[1], value[2]
+        if @config['tools'].include? name
+          puts (Platform.green "Found compiler #{compiler} for language #{language}")
+          found_compiler = compiler.new 
+        end
+      end
+      if found_compiler.nil?
+        puts (Platform.red "Too many compilers for language #{language}. Please, configure your platform.")
+        abort
+      end
+    end
+    
+    @language_to_compiler[language] = found_compiler
+    
   end
   
   def get_tool name
-    load $juddir.join('Tools', name.downcase + '.rb').to_s
-    tool =
-      begin
-        Object.const_get(name).new(name)
-      rescue
-        Object.const_get("Jud::Tools::#{name}").new(name)
-      end
-    #config = Jud::Config.instance.config['tools']
-    return tool
+    load ($juddir + 'Tools' + "#{name.downcase}.rb").to_s
+    return Object.const_get("Jud::Tools::#{name}").new
   end
   
-  def load_tools
-    # Get all tools before loading them. Avoid new key while iterating
-    # (some other tools may be added during loading).
-    tools = @config['tools'].keys
-    tools.each do |name|
-      load_tool name
+  def get_tool_config classname
+    configs = @tool_configs[classname]
+    if configs.nil?
+      toolclass = Object.const_get("Jud::Tools::#{classname}")
+      return [classname, {}] if toolclass.pure_ruby
+      raise "Can't find tool #{name}"
+    elsif configs.size == 1
+        return configs[0]
+    else
+      configs.each do | value |
+        name, config = value[0], value[1]
+        return value if @config['tools'].include? name
+      end
+      puts (Platform.red "Too many tools for #{classname}. Please, configure your platform.")
+      abort
     end
   end
   
@@ -230,6 +277,18 @@ class Platform
     end
   end
   
+  def self.find_executables exe
+    executables = []
+    exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
+    ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
+      exts.each do |ext|
+        filename = File.join path, "#{exe}#{ext}"
+        executables << filename if File.executable? filename
+      end
+    end
+    executables
+  end
+  
   def self.is_darwin?; RUBY_PLATFORM =~ /darwin/; end
   def self.is_windows?; RUBY_PLATFORM =~ /mswin|mingw/; end
   def self.is_linux?; RUBY_PLATFORM =~ /linux/; end
@@ -266,12 +325,12 @@ class Platform
   def pack_tool
     if Platform.is_windows? then
       require 'tarball'
-      Tarball.new
+      Jud::Tools::Tarball.new
       #require 'ziptool'
       #ZipTool.new
     else
       require 'tarball'
-      Tarball.new
+      Jud::Tools::Tarball.new
     end
   end
   

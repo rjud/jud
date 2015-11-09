@@ -8,8 +8,8 @@ class PackTool < Tool
   
   attr_reader :ext
   
-  def initialize ext
-    super()
+  def initialize ext, config
+    super config
     @ext = ext
   end
   
