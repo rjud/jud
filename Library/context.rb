@@ -25,6 +25,9 @@ class Context
   
   def debug?; @debug; end
   def release?; @release; end
+  def arch; $platform.arch; end
+  def is_32?; $platform.is_32?; end
+  def is_64?; $platform.is_64?; end
   
   def cd dir
     Dir.chdir dir

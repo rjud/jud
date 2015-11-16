@@ -1,7 +1,9 @@
 require 'java'
 
 module Jud::Tools
-  class Javac < Jud::Java::Compiler
+  class Javac < Jud::Compiler
+    
+    include Jud::Languages::Java
     
     class << self
       

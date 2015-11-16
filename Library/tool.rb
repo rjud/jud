@@ -168,4 +168,8 @@ class Tool
     @path = (@config.key? 'path') ? @config['path'] : nil
   end
   
+  def setenv context
+    context.appenv 'PATH', (File.dirname @path)
+  end
+  
 end

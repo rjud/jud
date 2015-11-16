@@ -66,8 +66,8 @@ if RUBY_PLATFORM =~ /mswin32|cygwin|mingw|bccwin/
 end
 
 module Kernel
-  alias :require_orig :require
-  def require name
+  #alias :require_orig :require
+  def require2 name
     begin
       require_orig name
     rescue LoadError => e
@@ -110,18 +110,6 @@ require 'git'
 require 'svn'
 
 case ARGV.first
-when 'configure'
-  ($install + 'Tools').each_child do |child|
-    if child.directory?
-      ENV['PATH'] = ($install + 'Tools' + child + 'bin').to_s + ";" + ENV['PATH']
-    end
-  end
-  Dir.glob ($juddir + 'Tools' + '*.rb').to_s do |rb|
-    load rb
-  end
-  ObjectSpace.each_object(Class).select{ |c| c < Tool }.each do |c|      
-    c.configure
-  end
 when 'download' then
   ARGV.shift
   url = ARGV.shift
@@ -184,6 +172,47 @@ when 'create' then
   exit
 end
 
+if not Jud::Config.instance.config['main'].include? 'default' then
+  abort('Please, create a platform with jud create <repository> <platform>')
+end
+
+platform = $general_config['default']
+$platform_config = Jud::Config.instance.config['platforms'][platform]
+
+$platform = Platform.new platform
+$platform.load_composites
+
+#load $juddir.join('Applications', 'tools.rb').to_s
+  
+repository = $platform_config['repository']
+$repository_config = $general_config['repositories'][repository]
+
+scm = $repository_config['scm']
+url = $repository_config['url']
+scm = Object.const_get("Jud::Tools::#{scm}").new url
+
+case ARGV.first
+when 'enable'
+  ARGV.shift
+  $platform.setup ARGV.shift
+  exit
+when 'configure'
+  if ($install + 'Tools').directory?
+    ($install + 'Tools').each_child do |child|
+      if child.directory?
+        ENV['PATH'] = ($install + 'Tools' + child + 'bin').to_s + ";" + ENV['PATH']
+      end
+    end
+  end
+  Dir.glob ($juddir + 'Tools' + '*.rb').to_s do |rb|
+    load rb
+  end
+  ObjectSpace.each_object(Class).select{ |c| c < Tool }.each do |c|      
+    c.configure
+  end
+  exit
+end
+
 begin
   
   # Clear the environment variables so that we have a clean environment.
@@ -193,61 +222,45 @@ begin
     ENV['PATH'] = '/usr/bin'
   end
   
-  if not Jud::Config.instance.config['main'].include? 'default' then
-    abort('Please, create a platform with jud create <repository> <platform>')
-  end
-  
   require 'project'
   require 'application'
-  
-  platform = $general_config['default']
-  $platform_config = Jud::Config.instance.config['platforms'][platform]
-  
-  $platform = Platform.new platform
-  $platform.load_composites
-  #$platform.load_tools
-  
-  #load $juddir.join('Applications', 'tools.rb').to_s
-  
-  repository = $platform_config['repository']
-  $repository_config = $general_config['repositories'][repository]
-  
-  scm = $repository_config['scm']
-  url = $repository_config['url']
-  scm = Object.const_get("Jud::Tools::#{scm}").new url
-
-  case ARGV.first
-  when 'enable'
-    ARGV.shift
-    $platform.setup ARGV.shift
-    exit
-  end
-  
-  #Dir.glob $juddir.join('Projects', '*.rb').to_s do |rb|
-  #  load rb
-  #end
   
   $:.unshift $home.join('Projects').to_s
   $:.unshift $home.join('Applications').to_s
   
-  #Dir.glob $home.join('Projects', '*.rb').to_s do |rb|
-  #  load rb
-  #end
-  
   def load_application appname
     begin
       if appname != 'Tools' then
+        puts $home.join('Applications', "#{appname.downcase}.rb").to_s
         load $home.join('Applications', "#{appname.downcase}.rb").to_s
       end
     rescue LoadError => e
       puts (Platform.red "Can't load application #{appname}")
-      puts e
+      puts (Platform.red e)
       exit 1
     end
   end
-    
+  
   case ARGV.first
-  when 'help', nil
+  when nil
+    puts 'Load all requirements'
+    Dir.glob ($juddir + 'Library' + '*.rb').to_s do |rb|
+      require (File.basename rb)
+    end
+    Dir.glob ($juddir + 'Platforms' + '*.rb').to_s do |rb|
+      require (File.basename rb)
+    end
+    Dir.glob ($juddir + 'Tools' + '*.rb').to_s do |rb|
+      require (File.basename rb)
+    end
+    Dir.glob ($juddir + 'Projects' + '*.rb').to_s do |rb|
+      require (File.basename rb)
+    end
+    case RbConfig::CONFIG['host_os']
+    when /mswin|mingw/
+      require 'win32ole'
+    end      
+  when 'help'
     puts 'jud'
     puts ' [branch <application> <branch>]'
     puts ' [configure]'

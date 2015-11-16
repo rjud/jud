@@ -25,11 +25,11 @@ module Jud::Tools
     def configure src, build, install, build_type, prj, options={}
     end
     
-    def build builddir, options = {}
+    def build builddir, build_type, options = {}
       execute nil, options.merge({ :wd => builddir })
     end
     
-    def install builddir, options = {}
+    def install builddir, build_type, options = {}
       fast = (options.has_key? :fast) and options[:fast]
       rule = 'install' + (fast ? '/fast' : '')
       execute rule, options.merge({ :wd => builddir })

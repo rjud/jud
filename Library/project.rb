@@ -29,6 +29,10 @@ class Project
         compiler = $platform.get_compiler language
         compiler.setenv @contexts[bt]
       end
+      @alternate_scm_tool.setenv @contexts[bt] unless @alternate_scm_tool.nil?
+      @build_tool.setenv @contexts[bt] unless @build_tool.nil?
+      @scm_tool.setenv @contexts[bt] unless @scm_tool.nil?
+      @submit_tool.setenv @contexts[bt] unless @submit_tool.nil?
     end
   end
   
@@ -88,6 +92,10 @@ class Project
       prefix = $install.join @options[:application]
     end
     prefix
+  end
+  
+  def deploydir
+    $install.join @options[:application], 'usr'
   end
   
   def bindir
@@ -170,9 +178,9 @@ class Project
     return false if not to_be_installed? depend, cond
     prf = Application::project(depend.name.to_sym).prefix
     if not File.directory? prf
-	  puts Platform.red("[#{name}] dependency #{depend.name} not found in directory #{prf}")
-	  return true 
-	end
+      puts Platform.red("[#{name}] dependency #{depend.name} not found in directory #{prf}")
+      return true 
+    end
     return false
   end
   
@@ -259,6 +267,7 @@ class Project
       puts (Platform.yellow "INCLUDE: #{ENV['INCLUDE']}")
       puts (Platform.yellow "LIB: #{ENV['LIB']}")
       puts (Platform.yellow "LIBPATH: #{ENV['LIBPATH']}")
+      puts (Platform.yellow "Platform: #{ENV['Platform']}")
     end
   end
   
@@ -322,7 +331,7 @@ class Project
       if @config['patches'].include? patchname then
         puts (Platform.red "Patch #{patchname} already applied")
       else
-        Patch.new.patch (srcdir build_type), patch
+        Jud::Tools::Patch.new.patch (srcdir build_type), patch
         @config['patches'] << patchname
       end
     end
@@ -379,7 +388,7 @@ class Project
     build = builddir build_type
     if self.class.build_block.nil? then
       return if self.class.build_tool.nil?
-      self.class.build_tool.build build, @options[:options]
+      self.class.build_tool.build build, build_type, @options[:options]
     else
       Dir.chdir build
       @contexts[build_type].instance_eval &self.class.build_block
@@ -390,7 +399,7 @@ class Project
     build = builddir build_type
     if self.class.install_block.nil? then
       return if self.class.build_tool.nil?
-      self.class.build_tool.install (Pathname.new build)
+      self.class.build_tool.install build, build_type
     else
       Dir.chdir build
       @contexts[build_type].instance_eval &self.class.install_block
@@ -442,70 +451,82 @@ class Project
     true
   end
   
+  def files_to_deploy
+    installed_files = Dir[bindir.join('**', '**')]
+    installed_files += Dir[libdir.join('**', '**')] if not Platform.is_windows?
+    installed_files += Dir[datadir.join('**', '**')]
+    installed_files
+  end
+  
   def deploy_this
-    # Go to /usr
-    usr = $install.join 'usr'
-    FileUtils.mkdir_p usr.to_s if not usr.directory?
-    Dir.chdir usr.to_s
+    # Create the deployment directory if it doesn't exist
+    FileUtils.mkdir_p deploydir.to_s if not deploydir.directory?
+    Dir.chdir deploydir.to_s
     # Print a message
-    puts (Platform.blue "Deploy #{build_name} to #{usr.to_s}")
+    puts (Platform.blue "Deploy #{build_name} to #{deploydir.to_s}")
     # Name of the files file
     filesname = prefix.dirname.join (prefix.basename.to_s + '.files')
-    # Get the files already installed
-    installed_files = [].tap do |files|
+    # Get the files already deployed
+    deployed_files = [].tap do |files|
       if File.exists? filesname then
         File.open filesname, 'r' do |file|
           files.concat file.readlines.map{ |l| l.chomp }
         end
       end
     end
-    # Check that they are really installed
-    installed_files.delete_if { |f| not File.symlink? f }
-    # Check
+    # Check that they are really deployed
+    deployed_files.delete_if { |f| not File.exists? f }
+    #   Check the files to be deployed
+    #   If a deployed file is not included in the list of the known deployed files,
+    # create an alert for it (it is probably installed by another project).
     all_files = []
     alert_files = []
-    Dir[prefix.join('**', '**')].each do |f|
+    files_to_deploy.each do |f|
       new = f.sub prefix.to_s + '/', ''
-      new_abs = usr.join(new).to_s
-      if File.directory? f then
-        FileUtils.mkdir_p new if not File.directory? new
-      else
+      new_abs = deploydir.join(new).to_s
+      if not File.directory? f then
         all_files << new_abs
-        if File.exists? new and not installed_files.include? new_abs then
+        if File.exists? new and not deployed_files.include? new_abs then
           alert_files << new_abs
         end
       end
     end
-    files_to_link = all_files - installed_files
-    files_to_unlink = installed_files - all_files
-    # Raise an exception if alert_files is not empty
+    # Get the files to be deployed or unlinked
+    files_to_link = all_files - deployed_files
+    files_to_unlink = deployed_files - all_files
+    # Print a message if alert_files is not empty
     if alert_files.size > 0 then
-      msg = "The following files have been installed by a previous package:\n"
+      msg = "The following files have been installed by a previous package. They will be removed.\n"
       alert_files.each do |f|
-        msg += "#{f}\n"
+        msg += "  #{f}\n"
         FileUtils.remove_file f if File.exists? f
       end
       puts (Platform.red msg)
     end
-    # Create symlinks to /usr
+    # Create some symlinks in deploydir
     files_to_link.each do |f|
-      old = f.sub usr.to_s, prefix.to_s
-      puts "Link #{f} -> #{old}"
+      old = f.sub deploydir.to_s, prefix.to_s
+      puts "Link #{f} to #{old}"
       begin
-        File.symlink old, f
+        FileUtils.mkdir_p (File.dirname f) if not File.directory? (File.dirname f)
+        if Platform.is_windows?
+          FileUtils.copy_file old, f
+        else
+          File.symlink old, f
+        end
       rescue Exception => e
         puts (Platform.red e)
       end
     end
-    # Remove symlinks from /usr
+    # Remove some symlinks from deploydir
     files_to_unlink.each do |f|
       puts "Unlink #{f}"
       File.unlink f
     end
-    # Update installed files
+    # Update installed files under Windows
     if Platform.is_windows?
-      installed_files.each do |f|
-        old = f.sub usr.to_s, prefix.to_s
+      deployed_files.each do |f|
+        old = f.sub deploydir.to_s, prefix.to_s
         begin
           if (File.mtime old) > (File.mtime f)
             puts (Platform.blue "Updating #{f}")

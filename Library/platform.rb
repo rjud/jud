@@ -2,6 +2,11 @@ require 'fileutils'
 require 'open3'
 require 'uri'
 
+case RbConfig::CONFIG['host_os']
+when /mswin|mingw/
+  require 'win32ole'
+end
+
 class Platform
   
   class Error < RuntimeError; end
@@ -37,8 +42,8 @@ class Platform
     config['repository'] = repository
     config['home'] = default_home prefix
     config['src'] = default_src prefix
-    config['build'] = default_build prefix
-    config['install'] = default_install prefix
+    config['build'] = default_build prefix, name
+    config['install'] = default_install prefix, name
     config['packages'] = default_packages prefix
     config['trash'] = default_trash prefix
     config['composites'] = []
@@ -46,8 +51,8 @@ class Platform
   
   def self.default_home prefix; prefix.join('home').to_s; end
   def self.default_src prefix; prefix.join('src').to_s; end
-  def self.default_build prefix; prefix.join("build-#{name}").to_s; end
-  def self.default_install prefix; prefix.join("install-#{name}").to_s; end
+  def self.default_build prefix, name; prefix.join("build-#{name}").to_s; end
+  def self.default_install prefix, name; prefix.join("install-#{name}").to_s; end
   def self.default_packages prefix; prefix.join('packages').to_s; end
   def self.default_trash prefix; prefix.join("trash").to_s; end
   
@@ -63,8 +68,8 @@ class Platform
     prefix = Pathname.new @repo_config['dir']
     $home = path_from_config 'home', (Platform.default_home prefix)
     $src = path_from_config 'src', (Platform.default_src prefix)
-    $build = path_from_config 'build', (Platform.default_build prefix)
-    $install = path_from_config 'install', (Platform.default_install prefix)
+    $build = path_from_config 'build', (Platform.default_build prefix, name)
+    $install = path_from_config 'install', (Platform.default_install prefix, name)
     $packdir = path_from_config 'packages', (Platform.default_packages prefix)
     $trash = path_from_config 'trash', (Platform.default_trash prefix)
     load_tool_configs
@@ -109,8 +114,10 @@ class Platform
   
   def load_composite name
     begin
-      load $juddir.join("Platforms", "#{name.downcase}.rb")
+      #load $juddir.join("Platforms", "#{name.downcase}.rb")
+      require "#{name.downcase}.rb"
       composite = Object.const_get(name).new name
+      puts "composite = #{composite}"
       composite.class.languages.each do |language|
         if language_to_composite.has_key? language then
           raise Error, "There is already a platform for the language #{language.name}"
@@ -293,8 +300,21 @@ class Platform
   def self.is_windows?; RUBY_PLATFORM =~ /mswin|mingw/; end
   def self.is_linux?; RUBY_PLATFORM =~ /linux/; end
   
-  def self.is_32?; RUBY_PLATFORM =~ /i386/; end
-  def self.is_64?; RUBY_PLATFORM =~ /x86_64/ or RUBY_PLATFORM =~ /x64/; end
+  def arch
+    if @config.key? 'arch'
+      @config['arch']
+    else
+      raise Error, 'Please, define the variable arch for your platform'
+    end
+  end
+  
+  def is_32?;
+    self.arch =~ /x86/ or self.arch =~ /arm/
+  end
+  
+  def is_64?;
+    self.arch =~ /x64/ or self.arch =~ /arm64/
+  end
   
   def build_name
     
@@ -310,13 +330,7 @@ class Platform
       raise Error, "Unknown OS"
     end
     
-    if Platform.is_32? then
-      name += '-x86'
-    elsif Platform.is_64? then
-      name += '-x86_64'
-    else
-      raise Error, "Unknown bits"
-    end
+    name += "-#{self.arch}"
     
     name
     
@@ -354,9 +368,9 @@ class Platform
     when /freebsd/
       `sysctl -n hw.ncpu`.to_i
     when /mswin|mingw/
-      require 'win32ole'
       wmi = WIN32OLE.connect("winmgmts://")
-      cpu = wmi.ExecQuery("select NumberOfCores from Win32_Processor") # TODO count hyper-threaded in this
+      cpu = wmi.ExecQuery("select NumberOfCores from Win32_Processor")
+      # TODO count hyper-threaded in this
       cpu.to_enum.first.NumberOfCores
     end
   end

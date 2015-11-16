@@ -1,6 +1,6 @@
 require 'build_tool'
 require 'ant'
-require 'antwrap'
+#require 'antwrap'
 require 'javac'
 require 'rexml/document'
 

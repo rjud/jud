@@ -2,15 +2,15 @@ require 'c'
 require 'cxx'
 require 'win32'
 
-class Msvc11 < Jud::Win32
+class Msvc14 < Jud::Win32
   
   class << self
     
     def create config
       Jud::Win32.create config
       config['tools'] = [] unless config.key? 'tools'
-      config['tools'] << 'Cl11'
-      config['tools'] << 'NMake11'
+      config['tools'] << 'Cl14'
+      config['tools'] << 'NMake14'
       config['runtime'] = 'MD'
       config['arch'] = 'x86'
     end
@@ -20,18 +20,18 @@ class Msvc11 < Jud::Win32
     end
     
     def compiler
-      require 'cl11'
-      Cl11
+      require 'cl14'
+      Cl14
     end
-    
+  
   end
   
   def initialize name
-    require 'cl11'
+    require 'cl14'
     super(name)
   end
   
   def build_name; "#{$platform.build_name}-#{short_build_name}"; end
-  def short_build_name; "msvc11"; end
+  def short_build_name; "msvc14"; end
   
 end

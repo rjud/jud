@@ -5,28 +5,17 @@ module Jud::Tools
     
     class << self
       
-      def version; '12.0'; end
-      
       def configure
         # Nothing to configure. Everything is done by the class Cl.
-      end  
-      
-      def get_windows_sdk_dir
-        return Pathname.new reg_query('SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v8.1', 'InstallationFolder')
       end
       
-      def get_vs_common_tools_dir
-        if ENV.key? 'VS120COMNTOOLS' then
-          return ENV['VS120COMNTOOLS']
-        else
-          return get_vs_install_dir.join('Common7', 'Tools')
-        end
-      end
-      
-      def get_framework_dir
-        dir = reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', 'FrameworkDir32')
-        ver = reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', 'FrameworkVer32')
-        return File.join(dir, ver)
+      def initialize_from_registry toolname, registry, version
+        super toolname, registry, version
+        # Windows SDK
+        reg_name = 'SOFTWARE\Microsoft\Microsoft SDKs\Windows\v8.1'
+        windows_sdk_dir = reg_query reg_name, 'InstallationFolder'
+        save_config_property toolname, 'WindowsSdkDir', windows_sdk_dir
+        save_config_property toolname, 'WindowsSdkVer', 'winv6.3'
       end
       
     end

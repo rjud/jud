@@ -4,12 +4,20 @@ require 'open3'
 module Jud::Tools
   class CMake < BuildTool
     
-    attr_reader :native_build_tool
+    attr_reader :native_build_tool, :generator
     
     def initialize config={}
       super config
-      nativetoolname = $platform_config['Native Build Tool']
-      @native_build_tool = $platform.get_tool nativetoolname
+      if $platform_config.include? 'CMake Generator'
+        @generator = $platform_config['CMake Generator']
+      else
+        @generator = "Make Makefiles"
+      end
+      if @generator =~ /NMake Makefiles/
+        @native_build_tool = $platform.get_tool 'NMake'
+      elsif @generator =~ /Make Makefiles/
+        @native_build_tool = $platform.get_tool 'Make'
+      end
     end
     
     def option_to_s opt
@@ -29,13 +37,13 @@ module Jud::Tools
     
     # Remove all arguments but project and only use project
     def configure src, build, install, build_type, prj, options={}
-      ENV['PATH'] = Pathname.new(@native_build_tool.path).dirname.to_s << ';' << ENV['PATH']
+      #if not @native_build_tool.nil?
+      #  ENV['PATH'] = Pathname.new(@native_build_tool.path).dirname.to_s << ';' << ENV['PATH']
+      #end
       cmakecache = File.join(build, 'CMakeCache.txt').to_s
       File.delete cmakecache if File.exists? cmakecache
       cmd = '"' + path + '"'
-      if $platform_config.include? 'CMake Generator' then
-        cmd += ' -G "' + $platform_config['CMake Generator'] + '"' 
-      end
+      cmd += ' -G "' + @generator + '"'
       get_options(src, build, install, build_type, prj, options).each do |opt|
         if opt.enabled
           final_value = option_to_s opt
@@ -54,7 +62,9 @@ module Jud::Tools
       #end
       resolved_options << ResolvedOption.new('CMAKE_INSTALL_PREFIX', :PATH, true, install.to_s, nil)
       resolved_options << ResolvedOption.new('CMAKE_DEBUG_POSTFIX', :STRING, build_type == :Debug, 'd', nil)
-      resolved_options << ResolvedOption.new('CMAKE_BUILD_TYPE', :STRING, true, build_type.to_s, nil)
+      if not $platform_config.include? 'CMake Generator' or not $platform_config['CMake Generator'] =~ /Visual Studio/
+        resolved_options << ResolvedOption.new('CMAKE_BUILD_TYPE', :STRING, true, build_type.to_s, nil)
+      end
       resolved_options << ResolvedOption.new('CMAKE_CXX_FLAGS', :STRING, (Platform.is_linux? and Platform.is_64?), '-fPIC', nil)
       if prj.depends.size > 0 then
         value = '"'
@@ -71,15 +81,23 @@ module Jud::Tools
       resolved_options        
     end
     
-    def build *args
-      @native_build_tool.build *args
+    def build build, build_type, options={}
+      if @native_build_tool.class < Make
+        @native_build_tool.build build, build_type, options
+      else
+        cmd = "\"#{path}\" --build #{build} --config #{build_type} --target ALL_BUILD"
+        Platform.execute cmd
+      end
     end
     
-    def install *args
-      if @native_build_tool.is_a? Ninja
-        @native_build_tool.install *args
+    def install build, build_type, options={}
+      if @native_build_tool.nil?
+        cmd = "\"#{path}\" --build #{build} --config #{build_type} --target INSTALL"
+        Platform.execute cmd
+      elsif @native_build_tool.class < Ninja
+        @native_build_tool.install build, build_type, options
       else
-        @native_build_tool.install *args, { :fast => true }
+        @native_build_tool.install build, build_type, ({ :fast => true }.merge options)
       end
     end
     

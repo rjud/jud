@@ -100,11 +100,15 @@ module Application
       deploy_one prj
     end
   end
-
+  
   def deploy_one proj
     puts Platform.yellow "Deploy project #{proj.name}"
     prj = project(proj.name.to_sym)
-    prj.deploy_this if prj.deploy_this?
+    if File.directory? prj.prefix
+      prj.deploy_this if prj.deploy_this?
+    else
+      prj.install_me
+    end
   end
   
   def submit appname, projname = nil, options={}
