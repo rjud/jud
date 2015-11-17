@@ -8,20 +8,22 @@ class Msvc10 < Jud::Win32
     
     def create config
       Jud::Win32.create config
-      require 'cl10'
-      config['tools'][Cl10.name] = Cl10.name
+      config['tools'] = [] unless config.key? 'tools'
+      config['tools'] << 'Cl10'
+      config['tools'] << 'NMake10'
       config['runtime'] = 'MD'
+      config['arch'] = 'x86'
     end
     
     def languages
-      super + [Jud::C, Jud::Cxx]
+      super + [Jud::Languages::C, Jud::Languages::Cxx]
     end
     
     def compiler
       require 'cl10'
       Cl10
     end
-  
+    
   end
   
   def initialize name

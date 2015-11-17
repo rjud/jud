@@ -8,24 +8,25 @@ class Msvc12 < Jud::Win32
     
     def create config
       Jud::Win32.create config
-      require 'cl12'
-      config['tools'][Cl12.name] = Cl12.name
+      config['tools'] = [] unless config.key? 'tools'
+      config['tools'] << 'Cl12'
+      config['tools'] << 'NMake12'
       config['runtime'] = 'MD'
+      config['arch'] = 'x86'
     end
     
     def languages
-      [Jud::C, Jud::Cxx]
+      super + [Jud::Languages::C, Jud::Languages::Cxx]
     end
     
     def compiler
       require 'cl12'
       Cl12
     end
-  
+    
   end
   
   def initialize name
-    require 'cl12'
     super(name)
   end
   

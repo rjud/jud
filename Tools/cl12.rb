@@ -20,9 +20,34 @@ module Jud::Tools
       
     end
     
+    attr_reader :windows_sdk_ver
+    
     def initialize config={}
       super config
+      @windows_sdk_ver = Pathname.new @config['WindowsSdkVer']
     end
     
+    def setenv context
+      
+      super context
+      
+      # Microsoft Visual Compiler
+      context.setenv 'INCLUDE', @vc_install_dir + 'INCLUDE'
+      context.setenv 'LIB', @vc_install_dir + 'lib' if context.arch =~ /x86/
+      context.setenv 'LIB', @vc_install_dir + 'lib' + 'amd64' if context.arch =~ /x64/
+      context.setenv 'LIBPATH', @vc_install_dir + 'lib' if context.arch =~ /x86/
+      context.setenv 'LIBPATH', @vc_install_dir + 'lib' + 'amd64' if context.arch =~ /x64/
+      context.appenv 'PATH', @vc_install_dir + 'BIN' # Always keep this line before the next line
+      context.appenv 'PATH', @vc_install_dir + 'BIN' + 'x86_amd64' if context.arch =~ /x64/
+      
+      # Windows SDK
+      context.appenv 'INCLUDE', @windows_sdk_dir + 'include' + 'shared'
+      context.appenv 'INCLUDE', @windows_sdk_dir + 'include' + 'um'
+      context.appenv 'INCLUDE', @windows_sdk_dir + 'include' + 'winrt'
+      context.appenv 'LIB', @windows_sdk_dir + 'lib' + @windows_sdk_ver + 'um' + context.arch
+      context.appenv 'PATH', @windows_sdk_dir + 'bin' + context.arch
+      
+    end
+  
   end
 end

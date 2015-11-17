@@ -1,52 +1,46 @@
 require 'cl'
 
-# To use .NET, add
-# FrameworkDir, FrameworkVer => read key SxS\VC7
-# C:\\WINDOWS\\Microsoft.NET\\Framework\\v4.0.30319
-# Concatenate v3.5 to FrameworkDir
-# C:\\WINDOWS\\Microsoft.NET\\Framework\\v3.5
-# Concatenate WindowsSdkDir to bin\NETFX 4.0 Tools
-# C:\\Program Files\\Microsoft SDKs\\Windows\\v7.0A\\bin\\NETFX 4.0 Tools"
-
 module Jud::Tools
   class Cl10 < Cl
     
     class << self
       
-      def version; '10.0'; end
-      
       def configure
         # Nothing to configure. Everything is done by the class Cl.
-      end  
-      
-      def get_windows_sdk_dir
-        return Pathname.new reg_query('SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0A', 'InstallationFolder')
       end
       
-      def get_vs_common_tools_dir
-        if ENV.key? 'VS100COMNTOOLS' then
-          return ENV['VS100COMNTOOLS']
-        else
-          return get_vs_install_dir.join('Common7', 'Tools')
-        end
-      end
-      
-      def get_framework_dir
-        begin
-          dir = reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', 'FrameworkDir32')
-          ver = reg_query('SOFTWARE\Microsoft\VisualStudio\SxS\VC7', 'FrameworkVer32')
-          return File.join(dir, ver)
-        rescue
-          dir = reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', 'FrameworkDir64')
-          ver = reg_query('SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7', 'FrameworkVer64')
-          return File.join(dir, ver)
-        end
+      def initialize_from_registry toolname, registry, version
+        super toolname, registry, version
+        # Windows SDK
+        reg_name = 'SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0A'
+        windows_sdk_dir = reg_query reg_name, 'InstallationFolder'
+        save_config_property toolname, 'WindowsSdkDir', windows_sdk_dir
       end
       
     end
     
     def initialize config={}
       super config
+    end
+    
+    def setenv context
+      
+      super context
+      
+      # Microsoft Visual Compiler
+      context.setenv 'INCLUDE', @vc_install_dir + 'INCLUDE'
+      context.setenv 'LIB', @vc_install_dir + 'lib' if context.arch =~ /x86/
+      #context.setenv 'LIB', @vc_install_dir + 'lib' + 'amd64' if context.arch =~ /x64/
+      context.setenv 'LIBPATH', @vc_install_dir + 'lib' if context.arch =~ /x86/
+      #context.setenv 'LIBPATH', @vc_install_dir + 'lib' + 'amd64' if context.arch =~ /x64/
+      context.appenv 'PATH', @vc_install_dir + 'bin'
+      
+      # Windows SDK
+      context.appenv 'INCLUDE', @windows_sdk_dir + 'include'
+      context.appenv 'LIB', @windows_sdk_dir + 'lib'
+      context.appenv 'PATH', @windows_sdk_dir + 'bin'
+      #context.appenv 'PATH', @windows_sdk_dir + 'bin' + 'x64' if context.arch =~ /x64/
+      
     end
     
   end

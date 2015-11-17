@@ -117,7 +117,6 @@ class Platform
       #load $juddir.join("Platforms", "#{name.downcase}.rb")
       require "#{name.downcase}.rb"
       composite = Object.const_get(name).new name
-      puts "composite = #{composite}"
       composite.class.languages.each do |language|
         if language_to_composite.has_key? language then
           raise Error, "There is already a platform for the language #{language.name}"
