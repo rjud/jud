@@ -13,6 +13,14 @@ require 'platform'
 require 'project'
 require 'rubygems/gem_runner'
 require 'utilities'
+require 'version'
+
+if Platform.is_windows?
+  if (Jud::Version.new RUBY_VERSION) > (Jud::Version.new '2.2')
+    puts (Platform.red "ruby #{RUBY_VERSION} is not supported because of nokogiri")
+    exit
+  end
+end
 
 at_exit { Jud::Config.instance.save }
 
