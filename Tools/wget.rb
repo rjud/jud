@@ -11,14 +11,12 @@ module Jud::Tools
     # ==== Attributes
     #
     # * +url+ - URL of the file to download. It may be a format specification.
-    # * +packtool+ - Tool to unpack the file to download
     #
     # ==== Options
     # * +:srcrename+ - After unpacking, name of the directory. It may be a format specification
     #
     def initialize url, options={}
-      super options
-      @url = url
+      super url, options
     end
     
     def checkout src, prj, options = {}
@@ -63,7 +61,7 @@ module Jud::Tools
         end
       end
       tmpfile.rename filename unless File.exists? filename
-      @packtool.unpack filename, $src
+      packtool.unpack filename, $src
       FileUtils.mv ($src.join (@options[:srcrename] % prj.options) ), src.to_s if @options[:srcrename]
     end
     

@@ -6,13 +6,18 @@ module Jud
   class ConfigurationFile
     
     class Error < RuntimeError; end
-
+    
+    class << self
+      def configdir
+        (Pathname.new Dir.home).join '.jud'
+      end
+    end
+    
     attr_accessor :contents
-    attr_reader :filename, :prefix
+    attr_reader :filename #, :prefix
     
     def initialize(filename)
-      @prefix = Pathname.new(Dir.home)
-      configdir = @prefix.join('.jud')
+      configdir = ConfigurationFile.configdir
       Dir.mkdir configdir.to_s if not File.directory? configdir.to_s
       @filename = configdir.join(filename)
       if File.exist? @filename

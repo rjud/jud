@@ -106,10 +106,23 @@ module Kernel
   end
 end
 
+Jud::Config.instance.config['main']['repositories']['default']['dir'] = Jud::ConfigurationFile.configdir.to_s
+Jud::Config.instance.config['platforms']['default']['repository'] = 'default'
+$platform = Platform.new 'default'
+
 require 'git'
 require 'svn'
 
 case ARGV.first
+when 'configure'
+  Dir.glob ($juddir + 'Tools' + '*.rb').to_s do |rb|
+    load rb
+  end
+  ObjectSpace.each_object(Class).select{ |c| c < Tool }.each do |c|      
+    c.configure
+  end
+    ARGV.shift
+  exit
 when 'download' then
   ARGV.shift
   url = ARGV.shift
@@ -121,8 +134,8 @@ when 'download' then
   scm = nil
   subsubclasses(SCMTool).each do |klass|
     begin
-      if klass.configured? and klass.guess url then
-        puts Platform.green("#{url} looks like a Git repository")
+      if klass.guess url then
+        puts Platform.green("#{url} looks like a #{Tool.toolname klass} repository")
         scm = klass.new url
         status = scm.checkout home
       end
@@ -135,12 +148,10 @@ when 'download' then
       puts (Platform.green "Can't guess the type of the repository #{url}")
       subsubclasses(SCMTool).each do |klass|
         begin
-          if klass.configured? then
-            puts (Platform.green "Try to download with #{klass.name}")
-            scm = klass.new url
-            status = scm.checkout home, nil
-            throw :download_ok if status[0].success?
-          end
+          puts (Platform.green "Try to download with #{klass.name}")
+          scm = klass.new url
+          status = scm.checkout home, nil
+          throw :download_ok if status[0].success?
         rescue Platform::Error => e
           puts (Platform.red e)
         end
@@ -156,7 +167,7 @@ when 'download' then
       abort
     else
       config = Jud::Config.instance.config['main']['repositories'][name]
-      config['scm'] = scm.class.name
+      config['scm'] = Tool.toolname scm.class
       config['url'] = url
       config['dir'] = dir.to_s
       config['home'] = home.to_s
@@ -173,7 +184,8 @@ when 'create' then
 end
 
 if not Jud::Config.instance.config['main'].include? 'default' then
-  abort('Please, create a platform with jud create <repository> <platform>')
+  puts Platform.red('Please, create a platform with jud create <repository> <platform>')
+  exit
 end
 
 platform = $general_config['default']
@@ -207,7 +219,7 @@ when 'configure'
   Dir.glob ($juddir + 'Tools' + '*.rb').to_s do |rb|
     load rb
   end
-  ObjectSpace.each_object(Class).select{ |c| c < Tool }.each do |c|      
+  ObjectSpace.each_object(Class).select{ |c| c < Tool }.each do |c|
     c.configure
   end
   exit
@@ -230,8 +242,7 @@ begin
   
   def load_application appname
     begin
-      if appname != 'Tools' then
-        puts $home.join('Applications', "#{appname.downcase}.rb").to_s
+      if appname != 'Tools'
         load $home.join('Applications', "#{appname.downcase}.rb").to_s
       end
     rescue LoadError => e

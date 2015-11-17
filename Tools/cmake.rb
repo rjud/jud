@@ -3,6 +3,23 @@ require 'open3'
 
 module Jud::Tools
   class CMake < BuildTool
+
+    class << self
+      
+      def configure
+        if Platform.is_windows?
+          Win32::Registry::HKEY_LOCAL_MACHINE.open 'SOFTWARE\Kitware' do |reg|
+            reg.each_key do |key, _|
+              default = Pathname.new reg_query "SOFTWARE\\Kitware\\#{key}", ''
+              path = default + 'bin' + 'cmake.exe'
+              save_config_property key, 'path', path
+              Platform.putfinds key, path
+            end
+          end
+        end
+      end
+      
+    end
     
     attr_reader :native_build_tool, :generator
     
@@ -82,7 +99,8 @@ module Jud::Tools
     end
     
     def build build, build_type, options={}
-      if @native_build_tool.class < Make
+      require 'make'
+      if @native_build_tool.class < Jud::Tools::Make
         @native_build_tool.build build, build_type, options
       else
         cmd = "\"#{path}\" --build #{build} --config #{build_type} --target ALL_BUILD"
@@ -91,10 +109,11 @@ module Jud::Tools
     end
     
     def install build, build_type, options={}
+      require 'ninja'
       if @native_build_tool.nil?
         cmd = "\"#{path}\" --build #{build} --config #{build_type} --target INSTALL"
         Platform.execute cmd
-      elsif @native_build_tool.class < Ninja
+      elsif @native_build_tool.class < Jud::Tools::Ninja
         @native_build_tool.install build, build_type, options
       else
         @native_build_tool.install build, build_type, ({ :fast => true }.merge options)

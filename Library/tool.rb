@@ -96,15 +96,15 @@ class Tool
     
     def extra_configure config; end
     
-    def configured?
-      if load_path and @path
-        return File.executable? @path
-      elsif load_path then
-        return false
-      else
-        return true
-      end
-    end
+    #def configured?
+    #  if load_path and @path
+    #    return File.executable? @path
+    #  elsif load_path then
+    #    return false
+    #  else
+    #    return true
+    #  end
+    #end
     
     def configure_property config, name, func
       if config[name].nil? or config[name].empty? then

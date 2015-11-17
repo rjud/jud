@@ -194,7 +194,7 @@ class Platform
     if configs.nil?
       toolclass = Object.const_get("Jud::Tools::#{classname}")
       return [classname, {}] if toolclass.pure_ruby
-      raise "Can't find tool #{name}"
+      raise Error, "Can't find tool #{classname}"
     elsif configs.size == 1
         return configs[0]
     else

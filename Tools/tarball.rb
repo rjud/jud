@@ -59,15 +59,17 @@ module Jud::Tools
     end
     
     def unpack filename, destination
+      puts (Platform.blue "Unpacking #{filename} to #{destination}")
       io = 
         begin
           Zlib::GzipReader.open filename
         rescue Zlib::GzipFile::Error => e
+          puts (Platform.red "Can't open #{filename}")
           puts (Platform.red e)
+          puts (Platform.red "Open it as an uncompressed file")
           File.open filename
         end
-      puts (Platform.blue "Unpacking #{filename} to #{destination}")
-      Gem::Package::TarReader.new (Zlib::GzipReader.open filename.to_s) do |tar|
+      Gem::Package::TarReader.new io do |tar|
         dest = nil
         tar.each do |entry|
           if entry.full_name == '././@LongLink'

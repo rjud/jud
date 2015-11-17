@@ -3,6 +3,19 @@ require 'scm_tool'
 module Jud::Tools
   class SVN < SCMTool
     
+    class << self
+
+      def configure
+        if Platform.is_windows?
+          require 'win32_utilities'
+          directory = Pathname.new reg_query 'SOFTWARE\TortoiseSVN', 'Directory'
+          ENV['PATH'] = (directory + 'bin').to_s + ";" + ENV['PATH']
+        end
+        super
+      end
+
+    end
+    
     def initialize url=nil, options={}
       super url, options
     end

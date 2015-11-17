@@ -4,7 +4,18 @@ module Jud::Tools
   class Git < SCMTool
     
     class << self
+      
+      def configure
+        if Platform.is_windows?
+          require 'win32_utilities'
+          directory = Pathname.new reg_query 'SOFTWARE\TortoiseGit', 'Directory'
+          ENV['PATH'] = (directory + 'bin').to_s + ";" + ENV['PATH']
+        end
+        super
+      end
+      
       def guess url; return url.end_with? '.git' end
+      
     end
     
     def initialize url, options={}
