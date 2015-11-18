@@ -1,7 +1,7 @@
 class RepositoryTool < Tool
   
-  def initialize
-    super()
+  def initialize options={}
+    super options
   end
   
 end

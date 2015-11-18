@@ -17,7 +17,7 @@ require 'version'
 
 if Platform.is_windows?
   if (Jud::Version.new RUBY_VERSION) > (Jud::Version.new '2.2')
-    puts (Platform.red "ruby #{RUBY_VERSION} is not supported because of nokogiri")
+    puts (Platform.red "ruby #{RUBY_VERSION} is not supported under Windows because nokogiri is not available")
     exit
   end
 end
@@ -400,7 +400,13 @@ begin
 	load_application appname
 	Application.upload appname, project
   end
-  
+
+rescue Interrupt => e
+  puts
+  puts (Platform.red "Why do you want to interrupt me ?")
+  exit 0
 rescue Platform::Error, Project::Error, Tool::Error => e
-  puts (Platform.red e)
+  puts (Platform.red "An error has been caught : could you do something for me ?")
+  puts e
+  exit -1
 end

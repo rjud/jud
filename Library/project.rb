@@ -751,7 +751,11 @@ class Project
     
     def cvs url, modulename
       require 'cvs'
-      @scm_tool = Jud::Tools::CVS.new url, modulename
+      begin
+        @scm_tool = Jud::Tools::CVS.new url, modulename
+      rescue Platform::Error
+        @scm_tool = nil
+      end
     end
     
     def eclipse &block

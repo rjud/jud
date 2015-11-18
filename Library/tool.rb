@@ -160,10 +160,9 @@ class Tool
   
   def initialize options={}
     (name, config) = $platform.get_tool_config (Tool.toolname self.class)
-    config = config.merge ({ :options => options })
     @name = name
     @config = config
-    #@passwords = self.class.get_passwords
+    @passwords = $tools_passwords[name]
     @options = options
     @path = (@config.key? 'path') ? @config['path'] : nil
   end

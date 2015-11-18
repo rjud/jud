@@ -13,23 +13,19 @@ class Cl < Jud::Compiler
     
     def configure
       [ 'SOFTWARE', 'SOFTWARE\Wow6432' ].each do |registry|
+        vcpath = registry + '\Microsoft\VisualStudio\SxS\VC7' 
         begin
-          vcpath = registry + '\Microsoft\VisualStudio\SxS\VC7' 
-          begin
-            Win32::Registry::HKEY_LOCAL_MACHINE.open(vcpath) do |reg|
-              puts "Read registry entry #{vcpath}"
-              reg.each_value do |name, _, data|
-                if /^\d+.\d+$/ =~ name
-                  version = Jud::Version.new name
-                  Platform.putfinds "Cl#{version.major}", data
-                  require "cl#{version.major}"
-                  tool = Object.const_get("Jud::Tools::Cl#{version.major}")
-                  tool.initialize_from_registry "Cl#{version.major}", registry, version
-                end
+          Win32::Registry::HKEY_LOCAL_MACHINE.open(vcpath) do |reg|
+            puts "Read registry entry #{vcpath}"
+            reg.each_value do |name, _, data|
+              if /^\d+.\d+$/ =~ name
+                version = Jud::Version.new name
+                Platform.putfinds "Cl#{version.major}", data
+                require "cl#{version.major}"
+                tool = Object.const_get("Jud::Tools::Cl#{version.major}")
+                tool.initialize_from_registry "Cl#{version.major}", registry, version
               end
             end
-          rescue Encoding::UndefinedConversionError => e
-            puts "Undefined conversion error while reading registry:\n  #{e}"
           end
         rescue Win32::Registry::Error => e
           puts (Platform.red "Skip registry entry #{vcpath}:\n  #{e.message}")

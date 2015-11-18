@@ -16,6 +16,8 @@ module Jud::Tools
               Platform.putfinds key, path
             end
           end
+        else
+          super
         end
       end
       

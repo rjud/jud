@@ -146,7 +146,7 @@ class Platform
     
     configs = []
     found_compiler = nil
-
+    
     return @language_to_compiler[language] if @language_to_compiler.key? language
     
     @tool_configs.each do |toolclass, tools|
@@ -193,8 +193,12 @@ class Platform
     configs = @tool_configs[classname]
     if configs.nil?
       toolclass = Object.const_get("Jud::Tools::#{classname}")
-      return [classname, {}] if toolclass.pure_ruby
-      raise Error, "Can't find tool #{classname}"
+      if toolclass.pure_ruby
+        $tools_config[classname]['instanceof'] = classname
+        return [ classname, $tools_config[classname] ]
+      else
+        raise Error, "Can't find tool #{classname}"
+      end
     elsif configs.size == 1
         return configs[0]
     else

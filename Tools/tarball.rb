@@ -4,7 +4,7 @@ require 'rubygems/package'
 require 'zlib'
 
 class File    
-  MEGABYTE = 1024 * 1024
+  MEGABYTE ||= 1024 * 1024
   def each_chunk chunk_size=MEGABYTE
     yield (read chunk_size) until eof?
   end

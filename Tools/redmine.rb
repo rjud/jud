@@ -5,12 +5,12 @@ module Jud::Tools
   class Redmine < RepositoryTool
     
     class << self
-      def load_path; false; end
+      def pure_ruby; true; end
     end
     
     def initialize url, projectid, options={}
       
-      super()
+      super options
     
       @url = url
       @projectid = projectid
