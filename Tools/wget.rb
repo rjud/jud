@@ -4,7 +4,7 @@ module Jud::Tools
   class Wget < SCMTool
     
     class << self
-      def load_path; false; end
+      def pure_ruby; true; end
     end
     
     #
