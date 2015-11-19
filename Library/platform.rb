@@ -21,7 +21,7 @@ class Platform
   def self.red text; colorize text, "\033[31m"; end
   def self.green text; colorize text, "\033[32m"; end
   def self.yellow text; colorize text, "\033[33m"; end
-  def self.blue text; colorize text, "\033[34m"; end
+  def self.blue text; colorize text, "\033[36m"; end
   def self.pink text; colorize text, "\033[35m"; end
   def self.cyan text; colorize text, "\033[36m"; end
   def self.gray text; colorize text, "\033[37m"; end
