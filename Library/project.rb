@@ -766,7 +766,11 @@ class Project
     
     def git url, options={}
       require 'git'
-      @scm_tool = Jud::Tools::Git.new url, options
+	  begin
+        @scm_tool = Jud::Tools::Git.new url, options
+      rescue Platform::Error
+	    @scm_tool = nil
+	  end
     end
     
     def nmake &block

@@ -12,7 +12,7 @@ module Jud::Tools
       def initialize_from_registry toolname, registry, version
         super toolname, registry, version
         # Windows SDK
-        reg_name = 'SOFTWARE\Microsoft\Microsoft SDKs\Windows\v8.1'
+        reg_name = registry + '\Microsoft\Microsoft SDKs\Windows\v8.1'
         windows_sdk_dir = reg_query reg_name, 'InstallationFolder'
         save_config_property toolname, 'WindowsSdkDir', windows_sdk_dir
         save_config_property toolname, 'WindowsSdkVer', 'winv6.3'

@@ -12,7 +12,7 @@ class Cl < Jud::Compiler
   class << self
     
     def configure
-      [ 'SOFTWARE', 'SOFTWARE\Wow6432' ].each do |registry|
+      [ 'SOFTWARE', 'SOFTWARE\Wow6432Node' ].each do |registry|
         vcpath = registry + '\Microsoft\VisualStudio\SxS\VC7' 
         begin
           Win32::Registry::HKEY_LOCAL_MACHINE.open(vcpath) do |reg|
@@ -21,14 +21,18 @@ class Cl < Jud::Compiler
               if /^\d+.\d+$/ =~ name
                 version = Jud::Version.new name
                 Platform.putfinds "Cl#{version.major}", data
-                require "cl#{version.major}"
-                tool = Object.const_get("Jud::Tools::Cl#{version.major}")
-                tool.initialize_from_registry "Cl#{version.major}", registry, version
+				begin
+				  require "cl#{version.major}"
+                  tool = Object.const_get("Jud::Tools::Cl#{version.major}")
+				  tool.initialize_from_registry "Cl#{version.major}", registry, version
+				rescue LoadError => e
+				  puts (Platform.red "Skip Cl#{version.major}")
+				end
               end
             end
           end
-        rescue Win32::Registry::Error => e
-          puts (Platform.red "Skip registry entry #{vcpath}:\n  #{e.message}")
+		rescue Jud::Library::RegistryError, Win32::Registry::Error => e
+		  puts (Platform.red "Skip registry entry #{vcpath}:\n  #{e.message}")
         end
       end
     end

@@ -8,8 +8,13 @@ module Jud::Tools
       def configure
         if Platform.is_windows?
           require 'win32_utilities'
-          directory = Pathname.new reg_query 'SOFTWARE\TortoiseGit', 'Directory'
-          ENV['PATH'] = (directory + 'bin').to_s + ";" + ENV['PATH']
+		  begin
+            directory = Pathname.new reg_query 'SOFTWARE\TortoiseGit', 'Directory'
+	      rescue Win32::Registry::Error => e
+		    directory = Pathname.new reg_query 'SOFTWARE\Wow6432Node\TortoiseGit', 'Directory'
+		  end
+		  puts directory
+		  ENV['PATH'] = (directory + 'bin').to_s + ";" + ENV['PATH']
         end
         super
       end

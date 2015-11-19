@@ -8,13 +8,19 @@ module Jud::Tools
       
       def configure
         if Platform.is_windows?
-          Win32::Registry::HKEY_LOCAL_MACHINE.open 'SOFTWARE\Kitware' do |reg|
-            reg.each_key do |key, _|
-              default = Pathname.new reg_query "SOFTWARE\\Kitware\\#{key}", ''
-              path = default + 'bin' + 'cmake.exe'
-              save_config_property key, 'path', path
-              Platform.putfinds key, path
-            end
+          ['SOFTWARE', 'SOFTWARE\Wow6432Node'].each do |registry|
+		    begin
+		      Win32::Registry::HKEY_LOCAL_MACHINE.open "#{registry}\\Kitware" do |reg|
+                reg.each_key do |key, _|
+                  default = Pathname.new reg_query "#{registry}\\Kitware\\#{key}", ''
+                  path = default + 'bin' + 'cmake.exe'
+                  save_config_property key, 'path', path
+                  Platform.putfinds key, path
+                end
+		      end
+		    rescue Win32::Registry::Error => e
+			  puts (Platform.red "Skip registry entry #{registry}\\Kitware")
+			end
           end
         else
           super
