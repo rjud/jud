@@ -38,15 +38,18 @@ module Jud::Tools
       tmpfile = Pathname.new(filename + '.tmp')
       tmpfile.delete if tmpfile.file?
       if not File.exists? filename then
-        puts (Platform.blue "Downloading #{@url} to #{filename}...")
+        puts (Platform.blue "Downloading #{surl} to #{filename}...")
         if surl.start_with? 'http' then
           require 'mechanize'
           agent = Mechanize.new
           agent.set_proxy $general_config['proxy']['host'], $general_config['proxy']['port'].to_i if Platform.use_proxy? surl
           agent.pluggable_parser.default = Mechanize::Download
-          puts (Platform.blue "Download #{surl} to #{filename}")
           # no-check-certificate
-          agent.get(surl).save tmpfile.to_s
+          begin
+            agent.get(surl).save tmpfile.to_s
+          rescue SocketError => e
+            puts (Platform.red "I can't download #{surl} over HTTP\n#{e}")
+          end
         elsif surl.start_with? 'ftp' then
           require 'uri'
           require 'net/ftp'

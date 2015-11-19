@@ -278,7 +278,9 @@ begin
     case RbConfig::CONFIG['host_os']
     when /mswin|mingw/
       require 'win32ole'
-    end      
+    end
+    require 'http/cookie_jar/abstract_store'
+    require 'http/cookie_jar/hash_store'
   when 'help'
     puts 'jud'
     puts ' [branch <application> <branch>]'

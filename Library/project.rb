@@ -301,16 +301,25 @@ class Project
   
   def checkout_this build_type
     src = checkoutdir build_type
-    if not File.directory? src then
-      puts (Platform.red "Can't find the sources of #{name} in the directory #{src}")
+    if not File.directory? src
+      puts (Platform.red "I can't find the sources of #{name} #{@options[:version]}. I will try to download them.")
       safe = (not self.class.alternate_scm_tool.nil?)
-      if not @scm_tool.nil?
+      if @scm_tool.nil?
+        puts (Platform.red "There is no SCM tool to download them.")
+      else
         @scm_tool.checkout src, self, @options.merge({:safe => safe})
       end
-      if not self.class.alternate_scm_tool.nil?
-        self.class.alternate_scm_tool.checkout src, self
+      if not File.directory? src
+        if self.class.alternate_scm_tool.nil?
+          puts (Platform.red "There is no alternative way to download a package. Do you really think that I can guess it ?")
+        else
+          self.class.alternate_scm_tool.checkout src, self
+        end
       end
       @config.delete 'patches'
+      if not File.directory? src
+        raise Error, "I really can't find the sources of #{name} #{@options[:version]} :-(. I propose you to download them and extract them in the directory #{src}. Thank you for your help !"
+      end
     end
   end
   
