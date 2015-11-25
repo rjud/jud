@@ -18,21 +18,26 @@ class Cl < Jud::Compiler
           Win32::Registry::HKEY_LOCAL_MACHINE.open(vcpath) do |reg|
             puts "Read registry entry #{vcpath}"
             reg.each_value do |name, _, data|
-              if /^\d+.\d+$/ =~ name
-                version = Jud::Version.new name
-                Platform.putfinds "Cl#{version.major}", data
-				begin
-				  require "cl#{version.major}"
-                  tool = Object.const_get("Jud::Tools::Cl#{version.major}")
-				  tool.initialize_from_registry "Cl#{version.major}", registry, version
-				rescue LoadError => e
-				  puts (Platform.red "Skip Cl#{version.major}")
-				end
+              begin
+                if /^\d+.\d+$/ =~ name
+                  version = Jud::Version.new name
+                  Platform.putfinds "Cl#{version.major}", data
+                  begin
+                    require "Tools/cl#{version.major}"
+                    tool = Object.const_get("Jud::Tools::Cl#{version.major}")
+                    tool.initialize_from_registry "Cl#{version.major}", registry, version
+                  rescue LoadError => e
+                    puts (Platform.red "Skip Cl#{version.major}")
+                    puts (Platform.red e)
+                  end
+                end
+              rescue Jud::Library::RegistryError => e
+                puts (Platform.red "Can't initialize Cl #{version} from registry #{registry}:\n  #{e.message}")
               end
             end
           end
-		rescue Jud::Library::RegistryError, Win32::Registry::Error => e
-		  puts (Platform.red "Skip registry entry #{vcpath}:\n  #{e.message}")
+        rescue Jud::Library::RegistryError, Win32::Registry::Error => e
+          puts (Platform.red "Skip registry entry #{vcpath}:\n  #{e.message}")
         end
       end
     end
@@ -45,11 +50,13 @@ class Cl < Jud::Compiler
       reg_name = registry + '\Microsoft\VisualStudio\SxS\VS7'
       vs_install_dir = Pathname.new reg_query reg_name, version.to_s
       # Additional DLLs
-      begin
-        reg_name = registry + "\\Microsoft\\AppEnv\\#{version.to_s}"
-        additional_dll_dir = Pathname.new reg_query reg_name, 'AdditionalDllsFolder'
-      rescue
-        puts (Platform.red "Can't read registry key #{reg_name}")
+      if version > (Jud::Version.new '10.0')
+        begin
+          reg_name = registry + "\\Microsoft\\AppEnv\\#{version.to_s}"
+          additional_dll_dir = Pathname.new reg_query reg_name, 'AdditionalDllsFolder'
+        rescue
+          puts (Platform.red "Can't read registry key #{reg_name}")
+        end
       end
       # VS Common tools
       comntools = "VS#{version.major}#{version.minor}COMNTOOLS"
@@ -74,11 +81,6 @@ class Cl < Jud::Compiler
       save_config_property toolname, 'FrameworkDir32', framework_dir32
       save_config_property toolname, 'FrameworkDir64', framework_dir64
       save_config_property toolname, 'AdditionalDllDir', additional_dll_dir
-      # NMake
-      old_path = ENV['PATH']
-      ENV['PATH'] = (vc_install_dir + 'bin').to_s + ';' + ENV['PATH']
-      Jud::Tools::NMake.configure "NMake#{version.major}", 'nmake'
-      ENV['PATH'] = old_path
     end
     
     def variants; return [Platform::WIN32]; end
@@ -90,8 +92,9 @@ class Cl < Jud::Compiler
   attr_reader :windows_sdk_dir
   attr_reader :version
   
-  def initialize options={}
+  def initialize version, options={}
     super options
+    @version = Jud::Version.new version
     @vc_install_dir = Pathname.new @config['VCInstallDir']
     @vs_install_dir = Pathname.new @config['VSInstallDir']
     @vs_common_tools_dir = Pathname.new @config['VSCommonToolsDir']
@@ -99,6 +102,10 @@ class Cl < Jud::Compiler
     @framework_dir32 = Pathname.new @config['FrameworkDir32']
     @framework_dir64 = Pathname.new @config['FrameworkDir64']
     @windows_sdk_dir = Pathname.new @config['WindowsSdkDir']
+  end
+  
+  def build_name current_build_name, language
+    "#{current_build_name}-msvc#{@version.major}"
   end
   
   def setenv context

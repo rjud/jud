@@ -1,4 +1,4 @@
-require 'cl'
+require 'Tools/cl'
 
 module Jud::Tools
   class Cl12 < Cl
@@ -16,6 +16,13 @@ module Jud::Tools
         windows_sdk_dir = reg_query reg_name, 'InstallationFolder'
         save_config_property toolname, 'WindowsSdkDir', windows_sdk_dir
         save_config_property toolname, 'WindowsSdkVer', 'winv6.3'
+        # NMake
+        config = get_configuration toolname        
+        old_path = ENV['PATH']
+        path = config['VCInstallDir'] + '\\' + 'bin'
+        ENV['PATH'] = path + ';' + old_path
+        Jud::Tools::NMake.configure "NMake #{version.major}", 'nmake'
+        ENV['PATH'] = old_path
       end
       
     end
@@ -23,7 +30,7 @@ module Jud::Tools
     attr_reader :windows_sdk_ver
     
     def initialize config={}
-      super config
+      super '12.0', config
       @windows_sdk_ver = Pathname.new @config['WindowsSdkVer']
     end
     

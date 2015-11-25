@@ -1,10 +1,12 @@
-require 'tarball'
-
 class CMake < Project
   
   cxx
-  wget 'http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz', (Tarball.new '.gz'), { :srcrename => 'cmake-3.2.2' }
-  autotools
+  wget 'http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz', { :srcrename => 'cmake-3.2.2' }
+  
+  if Platform.is_windows?
+  else
+    autotools
+  end
   
   configure do
     run "#{src}/bootstrap --prefix=#{prefix}"

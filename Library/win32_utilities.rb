@@ -7,7 +7,7 @@ end
 
 def reg_query path, name
   begin
-    puts (Platform.blue "Read registry #{name} @ #{path}")
+    #puts (Platform.blue "Read registry #{name} @ #{path}")
     Win32::Registry::HKEY_LOCAL_MACHINE.open(path) do |reg|
       _, data = reg.read(name)
       return data

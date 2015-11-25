@@ -2,6 +2,8 @@ class Context
   
   EnvironmentVariable = Struct.new(:var, :value, :append)
   
+  PATH_SEPARATOR = Platform.is_windows? ? ';' : ':' 
+  
   attr_accessor :prj, :name, :debug, :release, :src, :build, :prefix
   attr_accessor :version, :major, :minor, :release, :nbcores
   
@@ -73,7 +75,7 @@ class Context
       if ENV[variable.var].nil? || (not variable.append)
         ENV[variable.var] = variable.value
       else
-        ENV[variable.var] = variable.value + ";" + ENV[variable.var]
+        ENV[variable.var] = variable.value + PATH_SEPARATOR + ENV[variable.var]
       end
     end
   end
@@ -107,8 +109,8 @@ class Context
   end
   
   def python *args
-    require 'python2'
-    cmd = Python2.new.path
+    require 'Tools/python'
+    cmd = Jud::Tools::Python.new.path
     puts (Platform.yellow "PYTHONPATH: #{ENV['PYTHONPATH']}")
     run cmd, args
   end

@@ -1,6 +1,6 @@
 require 'c'
 require 'cxx'
-require 'win32'
+require 'Platforms/win32'
 
 class Msvc12 < Jud::Win32
   
@@ -20,7 +20,7 @@ class Msvc12 < Jud::Win32
     end
     
     def compiler
-      require 'cl12'
+      require 'Tools/cl12'
       Cl12
     end
     

@@ -20,7 +20,7 @@ module Jud
     def variant; Platform::WIN32; end
     
     def initialize name
-      require 'nmake'
+      require 'Tools/nmake'
     end
     
   end

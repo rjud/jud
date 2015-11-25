@@ -33,7 +33,7 @@ module Jud::Tools
       cmd += " --prefix=#{install.to_s}"
       fpicset = false
       context = Context.new(prj, build_type)
-      resolve_options(context, options).each do |opt|
+      resolve_options(context, options).each do |name, opt|
         if opt.name == 'CPPFLAGS'
           cmd += " #{opt.name}=\"#{option_to_s opt}"
           if Platform.is_linux? and Platform.is_64? then

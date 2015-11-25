@@ -5,7 +5,7 @@ class Project
   
   class Error < RuntimeError; end
   
-  attr_reader :name, :packdir, :scm_tool, :config, :options, :major, :minor, :revision
+  attr_reader :name, :packdir, :scm_tool, :config, :options, :major, :minor, :revision, :contexts
   attr_accessor :repository
   
   def initialize options={}
@@ -23,17 +23,8 @@ class Project
       @options.merge! ({ :major => @major, :minor => @minor, :revision => @revision})
     end
     @contexts = {}
-    build_types.each do |bt|
-      @contexts[bt] = Context.new(self, bt)
-      self.class.languages.each do |language|
-        compiler = $platform.get_compiler language
-        compiler.setenv @contexts[bt]
-      end
-      @alternate_scm_tool.setenv @contexts[bt] unless @alternate_scm_tool.nil?
-      @build_tool.setenv @contexts[bt] unless @build_tool.nil?
-      @scm_tool.setenv @contexts[bt] unless @scm_tool.nil?
-      @submit_tool.setenv @contexts[bt] unless @submit_tool.nil?
-    end
+    build_types.each { |bt| @contexts[bt] = Context.new(self, bt) }
+    build_env
   end
   
   def project sym
@@ -42,21 +33,12 @@ class Project
   end
   
   def build_name
-    case self.class.languages.size
-    when 0 then
-      return $platform.build_name
-    when 1 then
-      language = self.class.languages.first
-      composite = $platform.get_composite_for_language(language)
-      return composite.build_name
-    else
-      name = $platform.build_name
-      self.class.languages.each do |language|
-        composite = $platform.get_composite_for_language language
-        name += '-' + composite.short_build_name
-      end
-      return name
+    buildname = $platform.build_name
+    self.class.languages.uniq!
+    self.class.languages.each do |l|
+      buildname = ($platform.get_compiler l).build_name buildname, l
     end
+    buildname
   end
   
   def checkoutdir build_type
@@ -142,32 +124,42 @@ class Project
       update_this bt
     end
   end
-    
+  
+  def install_me options={}
+    install_dependencies
+    if not options[:force] and prefix.directory?
+      puts (Platform.yellow "#{self.class.name} is already installed")
+      return
+    end
+    if not options[:force] and packfile.exist?
+      unpack_this
+    elsif not options[:force] and self.class.repository and self.class.repository.exist? depend.packfile
+      download_this
+      unpack_this
+    else
+      build_types.each do |bt|
+        @contexts[bt].push
+        print_env
+        checkout_this bt
+        patch_this bt
+        configure_this bt
+        build_this bt
+        install_this bt
+        @contexts[bt].pop
+      end
+      pack_this if pack_this?
+      upload_this if upload_this?
+    end
+    deploy_this if deploy_this?
+    register_this
+    trash_this if options[:trash]
+  end
+  
   def install_dependency claz
     depend = project claz.name.to_sym
-    depend.install_dependencies
-    if depend.packfile.exist? then
-      depend.unpack_this
-    elsif depend.class.repository and depend.class.repository.exist? depend.packfile then
-      depend.download_this
-      depend.unpack_this
-    else
-      puts Platform.yellow('[' + name + "] install dependency " + depend.name)
-      depend.load_env
-      build_types.each do |bt|
-        depend.checkout_this bt
-        depend.patch_this bt
-        depend.configure_this bt
-        depend.build_this bt
-        depend.install_this bt
-      end
-      depend.pack_this if depend.pack_this?
-      depend.upload_this if depend.upload_this?
-      puts Platform.yellow("[#{name}] dependency #{depend.name} is installed")
-    end
-    depend.deploy_this if depend.deploy_this?
-    depend.register_this
-    depend.trash_this
+    puts Platform.yellow("[#{name}] install dependency #{depend.name}")
+    depend.install_me(trash: true)
+    puts Platform.yellow("[#{name}] dependency #{depend.name} is installed")
   end
   
   def to_be_installed? depend, cond
@@ -193,9 +185,19 @@ class Project
   # Dependencies and conditions from the meta_description and from the options
   def all_depends
     if self.class.build_tool.nil? then
-      self.class.depends
+      self.class.depends.uniq { |dep, cond| dep }
     else
-      self.class.build_tool.depends(self) + self.class.depends
+      (self.class.build_tool.depends(self) + self.class.depends).uniq { |dep,cond| dep }
+    end
+  end
+  
+  def show_dependencies indent
+    puts "#{' ' * indent}+--#{self.name}"
+    all_depends.each do |depend, cond|
+      if to_be_installed? depend, cond
+        prj = Application::project(depend.name.to_sym)
+        prj.show_dependencies (indent + 3) 
+      end
     end
   end
   
@@ -244,10 +246,38 @@ class Project
     end
   end
   
-  def load_env
-    puts (Platform.blue "Load environment")
-    load_binenv
-    load_libenv
+  def build_env
+    build_types.each do |bt|
+      # Environment from compilers
+      self.class.languages.each do |language|
+        compiler = $platform.get_compiler language
+        compiler.setenv @contexts[bt]
+      end
+      # Enviroment from tools
+      @alternate_scm_tool.setenv @contexts[bt] unless @alternate_scm_tool.nil?
+      @build_tool.setenv @contexts[bt] unless @build_tool.nil?
+      @scm_tool.setenv @contexts[bt] unless @scm_tool.nil?
+      @submit_tool.setenv @contexts[bt] unless @submit_tool.nil?
+      # Environment from this project
+      self.class.binenv.each do |args|
+        Project.project_evals(args).each do |path|
+          @contexts[bt].appenv 'PATH', path
+        end
+      end      
+      self.class.libenv.each do |args|
+        Project.project_evals(args).each do |path|
+          if Platform.is_windows? then
+            @contexts[bt].appenv 'PATH', path
+          elsif Platform.is_linux? then
+            @contexts[bt].appenv 'LD_LIBRARY_PATH', path
+          elsif Platform.is_darwin? then
+            @contexts[bt].appenv 'DYLD_LIBRARY_PATH', path
+          else
+            raise Error, "project.rb libenv: Not implemented"
+          end
+        end
+      end
+    end
   end
   
   def print_env
@@ -270,35 +300,7 @@ class Project
       puts (Platform.yellow "Platform: #{ENV['Platform']}")
     end
   end
-  
-  def load_binenv
-    self.class.binenv.each do |args|
-      Project.project_evals(args).each do |path|
-        if Platform.is_windows? then
-          ENV['PATH'] = path << ";" << ENV['PATH']
-        else
-          ENV['PATH'] = path << ":" << ENV['PATH']
-        end
-      end
-    end
-  end
-  
-  def load_libenv  
-    self.class.libenv.each do |args|
-      Project.project_evals(args).each do |path|
-        if Platform.is_windows? then
-          ENV['PATH'] = path << ";" << ENV['PATH']
-        elsif Platform.is_linux? then
-          ENV['LD_LIBRARY_PATH'] = path << ":" << ENV['LD_LIBRARY_PATH']
-        elsif Platform.is_darwin? then
-          ENV['DYLD_LIBRARY_PATH'] = path << ":" << ENV['DYLD_LIBRARY_PATH']
-        else
-          raise Error, "project.rb load_libenv: Not implemented"
-        end
-      end
-    end
-  end
-  
+    
   def checkout_this build_type
     src = checkoutdir build_type
     if not File.directory? src
@@ -334,7 +336,7 @@ class Project
   
   def patch_this build_type
     Dir.glob $home.join('Patches', @name, '*.patch').to_s do |patch|
-      require 'patch'
+      require 'Tools/patch'
       @config['patches'] = [] if not @config.has_key? 'patches'
       patchname = File.basename patch, '.patch'
       if @config['patches'].include? patchname then
@@ -555,26 +557,7 @@ class Project
       end
     end
   end
-  
-  def install_me
-    install_dependencies
-    load_env
-    build_types.each do |bt|
-      @contexts[bt].push
-      print_env
-      checkout_this bt
-      patch_this bt
-      configure_this bt
-      build_this bt
-      install_this bt
-      @contexts[bt].pop
-    end
-    pack_this if pack_this?
-    upload_this if upload_this?
-    deploy_this if deploy_this?
-    register_this
-  end
-  
+    
   def submit options={}
     # Variables
     self.class.submit_tool.build_tool = self.class.build_tool
@@ -582,11 +565,11 @@ class Project
     status = SubmitTool::OK
     # Install dependencies
     install_dependencies
-    # Prepare environment
-    load_env
     # Submit for each build
     build_types.each do |bt|
-      src = checkoutdir bt
+      @contexts[bt].push
+      print_env
+      src = srcdir bt
       build = builddir bt
       buildname = ""
       buildname += "#{@options[:version]} " if @options.has_key? :version
@@ -597,6 +580,7 @@ class Project
       s = self.class.submit_tool.submit self, src, build, @install, bt, buildname, options[:mode], @options[:options]
       status = s if s > status
       install_this bt
+      @contexts[bt].pop
     end
     pack_this if pack_this?
     # Upload if good
@@ -741,25 +725,25 @@ class Project
     end
     
     def autotools &block
-      require 'autotools'
+      require 'Tools/autotools'
       @build_tool = Jud::Tools::AutoTools.new
       @build_tool.instance_eval &block if block_given?
     end
     
     def cmake &block
-      require 'cmake'
+      require 'Tools/cmake'
       @build_tool = Jud::Tools::CMake.new
       @build_tool.instance_eval &block if block_given?
     end
     
     def ctest &block
-      require 'ctest'
+      require 'Tools/ctest'
       @submit_tool = Jud::Tools::CTest.new
       @submit_tool.instance_eval &block if block_given?
     end
     
     def cvs url, modulename
-      require 'cvs'
+      require 'Tools/cvs'
       begin
         @scm_tool = Jud::Tools::CVS.new url, modulename
       rescue Platform::Error
@@ -768,38 +752,38 @@ class Project
     end
     
     def eclipse &block
-      require 'eclipse'
+      require 'Tools/eclipse'
       @build_tool = Jud::Tools::Eclipse.new
       @build_tool.instance_eval &block if block_given?
     end
     
     def git url, options={}
-      require 'git'
-	  begin
+      require 'Tools/git'
+      begin
         @scm_tool = Jud::Tools::Git.new url, options
       rescue Platform::Error
-	    @scm_tool = nil
-	  end
+        @scm_tool = nil
+      end
     end
     
     def nmake &block
-      require 'nmake'
+      require 'Tools/nmake'
       @build_tool = Jud::Tools::NMake.new
       @build_tool.instance_eval &block if block_given?
     end
     
     def redmine url, projectid
-      require 'redmine'
+      require 'Tools/redmine'
       @repository = Jud::Tools::Redmine.new url, projectid
     end
     
     def svn url, options={}
-      require 'svn'
+      require 'Tools/svn'
       @scm_tool = Jud::Tools::SVN.new url, options
     end
     
     def wget url, options={}
-      require 'wget'
+      require 'Tools/wget'
       @alternate_scm_tool = Jud::Tools::Wget.new url, options
     end
 

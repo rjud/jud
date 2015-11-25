@@ -1,4 +1,5 @@
-load "Library/python.rb"
+require 'Library/python.rb'
+require 'compiler'
 
 module Jud::Tools
   class Python < Jud::Compiler
@@ -8,6 +9,8 @@ module Jud::Tools
     def initialize config = {}
       super config
     end
+    
+    
     
   end
 end
