@@ -3,12 +3,16 @@ require 'build_tool'
 module Jud::Tools
   class AutoTools < BuildTool
     
+    class << self
+      # It is not really pure ruby but autotools scripts are often provided with project sources.
+      def pure_ruby; true; end
+    end
+    
     attr_reader :native_build_tool
     
     def initialize config={}
       super config
-      platform = $platform_config['Native Build Tool']
-      @native_build_tool = $platform.get_tool platform
+      @native_build_tool = $platform.get_tool 'Make'
     end
     
     def option_to_s opt

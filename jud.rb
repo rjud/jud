@@ -75,8 +75,8 @@ if RUBY_PLATFORM =~ /mswin32|cygwin|mingw|bccwin/
 end
 
 module Kernel
-  #alias :require_orig :require
-  def require2 name
+  alias :require_orig :require
+  def require name
     begin
       require_orig name
     rescue LoadError => e
@@ -242,7 +242,7 @@ begin
   if Platform.is_windows?
     ENV['PATH'] = ENV['SystemRoot'] + '\system32'
   else
-    ENV['PATH'] = '/usr/bin'
+    ENV['PATH'] = '/usr/bin:/bin'
   end
   
   require 'project'
@@ -479,5 +479,6 @@ rescue Interrupt => e
 rescue Platform::Error, Project::Error, Tool::Error => e
   puts (Platform.red "An error has been caught : could you do something for me ?")
   puts e
+  puts e.backtrace
   exit -1
 end

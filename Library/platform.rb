@@ -367,7 +367,7 @@ class Platform
   def memcheck_tool
     if Platform.is_linux? then
       require 'Tools/valgrind'
-      Valgrind.new
+      Jud::Tools::Valgrind.new
     else
       nil
     end

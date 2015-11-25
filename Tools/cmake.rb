@@ -29,7 +29,7 @@ module Jud::Tools
       
     end
     
-    attr_reader :native_build_tool, :generator
+    attr_reader :arch, :native_build_tool, :generator
     
     def initialize config={}
       
@@ -41,7 +41,7 @@ module Jud::Tools
         @generator = "NMake Makefiles"
         $platform_config['CMake Generator'] = @generator
       else
-        @generator = "Make Makefiles"
+        @generator = "Unix Makefiles"
         $platform_config['CMake Generator'] = @generator
       end
       
@@ -51,7 +51,7 @@ module Jud::Tools
         elsif @generator =~ /NMake Makefiles/
           @native_build_tool = $platform.get_tool 'NMake'
           $platform_config['CMake Native Build Tool'] = @native_build_tool.class.name
-        elsif @generator =~ /Make Makefiles/
+        elsif @generator =~ /Unix Makefiles/
           @native_build_tool = $platform.get_tool 'Make'
           $platform_config['CMake Native Build Tool'] = @native_build_tool.class.name
         end
@@ -60,6 +60,8 @@ module Jud::Tools
       unless $platform_config.include? 'arch'
         $platform_config['arch'] = 'x86'
       end
+      
+      @arch = $platform_config['arch']
       
     end
     
@@ -108,7 +110,7 @@ module Jud::Tools
       if not $platform_config.include? 'CMake Generator' or not $platform_config['CMake Generator'] =~ /Visual Studio/
         resolved_options['CMAKE_BUILD_TYPE'] = ResolvedOption.new('CMAKE_BUILD_TYPE', :STRING, true, build_type.to_s, nil)
       end
-      resolved_options['CMAKE_CXX_FLAGS'] = ResolvedOption.new('CMAKE_CXX_FLAGS', :STRING, (Platform.is_linux? and Platform.is_64?), '-fPIC', nil)
+      resolved_options['CMAKE_CXX_FLAGS'] = ResolvedOption.new('CMAKE_CXX_FLAGS', :STRING, (Platform.is_linux? and arch == 'x64'), '-fPIC', nil)
       if prj.depends.size > 0 then
         value = '"'
         prj.depends.each do |d|
@@ -126,7 +128,7 @@ module Jud::Tools
     
     def build build, build_type, options={}
       require 'Tools/make'
-      if @native_build_tool.class < Jud::Tools::Make
+      if @native_build_tool.class <= Jud::Tools::Make
         @native_build_tool.build build, build_type, options
       else
         cmd = "\"#{path}\" --build #{build} --config #{build_type} --target ALL_BUILD"
