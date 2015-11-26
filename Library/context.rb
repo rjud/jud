@@ -107,10 +107,14 @@ class Context
   end
   
   def python *args
-    require 'python2'
-    cmd = Python2.new.path
+    cmd = ($platform.get_tool 'Python').path
     puts (Platform.yellow "PYTHONPATH: #{ENV['PYTHONPATH']}")
     run cmd, args
+  end
+  
+  def perl *args
+    cmd = ($platform.get_tool 'Perl').path
+	run cmd, args
   end
   
   def eval_option func

@@ -734,6 +734,16 @@ class Project
       languages << Jud::Languages::Java
     end
     
+	def perl
+      require 'perl'
+      languages << Jud::Languages::Perl
+    end
+	
+	def python
+      require 'python'
+      languages << Jud::Languages::Python
+    end
+	
     def ant &block
       require 'Tools/ant'
       @build_tool = Jud::Tools::Ant.new
