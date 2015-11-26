@@ -1,5 +1,5 @@
-require 'make'
-require 'cl'
+require 'Tools/make'
+require 'Tools/cl'
 
 module Jud::Tools
   class Ninja < Make

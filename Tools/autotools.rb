@@ -3,12 +3,16 @@ require 'build_tool'
 module Jud::Tools
   class AutoTools < BuildTool
     
+    class << self
+      # It is not really pure ruby but autotools scripts are often provided with project sources.
+      def pure_ruby; true; end
+    end
+    
     attr_reader :native_build_tool
     
     def initialize config={}
       super config
-      platform = $platform_config['Native Build Tool']
-      @native_build_tool = $platform.get_tool platform
+      @native_build_tool = $platform.get_tool 'Make'
     end
     
     def option_to_s opt
@@ -33,7 +37,7 @@ module Jud::Tools
       cmd += " --prefix=#{install.to_s}"
       fpicset = false
       context = Context.new(prj, build_type)
-      resolve_options(context, options).each do |opt|
+      resolve_options(context, options).each do |name, opt|
         if opt.name == 'CPPFLAGS'
           cmd += " #{opt.name}=\"#{option_to_s opt}"
           if Platform.is_linux? and Platform.is_64? then

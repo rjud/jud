@@ -5,8 +5,8 @@ require 'pathname'
 $juddir = Pathname.new(__FILE__).realpath.dirname
 $:.unshift $juddir.to_s
 $:.unshift $juddir.join('Library').to_s
-$:.unshift $juddir.join('Platforms').to_s
-$:.unshift $juddir.join('Tools').to_s
+$:.unshift $juddir.join('Projects').to_s
+$:.unshift $juddir.join('Applications').to_s
 
 require 'config'
 require 'platform'
@@ -27,6 +27,7 @@ at_exit { Jud::Config.instance.save }
 $general_config = Jud::Config.instance.config['main']
 $tools_config = Jud::Config.instance.config['tools']
 $tools_passwords = Jud::Config.instance.passwords['tools']
+$do_nothing = false
 
 AUTO_GEMS =
   {
@@ -74,8 +75,8 @@ if RUBY_PLATFORM =~ /mswin32|cygwin|mingw|bccwin/
 end
 
 module Kernel
-  #alias :require_orig :require
-  def require2 name
+  alias :require_orig :require
+  def require name
     begin
       require_orig name
     rescue LoadError => e
@@ -118,8 +119,8 @@ Jud::Config.instance.config['main']['repositories']['default']['dir'] = Jud::Con
 Jud::Config.instance.config['platforms']['default']['repository'] = 'default'
 $platform = Platform.new 'default'
 
-require 'git'
-require 'svn'
+require 'Tools/git'
+require 'Tools/svn'
 
 case ARGV.first
 when 'configure'
@@ -187,22 +188,28 @@ when 'create' then
   repository = ARGV.shift
   name = ARGV.shift
   Platform.create repository, name
-  Jud::Config.instance.config['main']['default'] = name
+  Jud::Config.instance.config['main']['platform'] = name
   exit
 end
 
-if not Jud::Config.instance.config['main'].include? 'default' then
+if not Jud::Config.instance.config['main'].include? 'platform' then
   puts Platform.red('Please, create a platform with jud create <repository> <platform>')
   exit
 end
 
-platform = $general_config['default']
+platform = $general_config['platform']
 $platform_config = Jud::Config.instance.config['platforms'][platform]
 
-$platform = Platform.new platform
-$platform.load_composites
+puts Platform.green("*************************************")
+puts Platform.green("    Platform #{platform}             ")
+puts Platform.green("      #{$platform_config['home']}    ")
+puts Platform.green("      #{$platform_config['src']}     ")
+puts Platform.green("      #{$platform_config['build']}   ")
+puts Platform.green("      #{$platform_config['install']} ")
+puts Platform.green("*************************************")
 
-#load $juddir.join('Applications', 'tools.rb').to_s
+$platform = Platform.new platform
+#$platform.load_composites
   
 repository = $platform_config['repository']
 $repository_config = $general_config['repositories'][repository]
@@ -212,10 +219,6 @@ url = $repository_config['url']
 scm = Object.const_get("Jud::Tools::#{scm}").new url
 
 case ARGV.first
-when 'enable'
-  ARGV.shift
-  $platform.setup ARGV.shift
-  exit
 when 'configure'
   if ($install + 'Tools').directory?
     ($install + 'Tools').each_child do |child|
@@ -239,7 +242,7 @@ begin
   if Platform.is_windows?
     ENV['PATH'] = ENV['SystemRoot'] + '\system32'
   else
-    ENV['PATH'] = '/usr/bin'
+    ENV['PATH'] = '/usr/bin:/bin'
   end
   
   require 'project'
@@ -248,31 +251,40 @@ begin
   $:.unshift $home.join('Projects').to_s
   $:.unshift $home.join('Applications').to_s
   
-  def load_application appname
-    begin
-      if appname != 'Tools'
-        load $home.join('Applications', "#{appname.downcase}.rb").to_s
-      end
-    rescue LoadError => e
-      puts (Platform.red "Can't load application #{appname}")
-      puts (Platform.red e)
-      exit 1
+  appname = $general_config['application']
+  begin
+    if appname == 'main'
+      # Nothing to do
+    else
+      load "#{appname.downcase}.rb"
     end
+  rescue LoadError => e
+    puts (Platform.red "Can't load application #{appname}")
+    puts (Platform.red e)
+    exit 1
   end
   
+  puts Platform.green("****************************")
+  puts Platform.green("    Application #{appname}  ")
+  puts Platform.green("****************************")
+
   case ARGV.first
   when nil
-    puts 'Load all requirements'
+    puts "I am loading all requirements for ocra."
+    puts "If you want some help, `jud help` could be useful for you."
     Dir.glob ($juddir + 'Library' + '*.rb').to_s do |rb|
       require (File.basename rb)
     end
     Dir.glob ($juddir + 'Platforms' + '*.rb').to_s do |rb|
-      require (File.basename rb)
+      require ('Platforms/' + (File.basename rb) )
     end
     Dir.glob ($juddir + 'Tools' + '*.rb').to_s do |rb|
-      require (File.basename rb)
+      require ('Tools/' + (File.basename rb) )
     end
     Dir.glob ($juddir + 'Projects' + '*.rb').to_s do |rb|
+      require (File.basename rb)
+    end
+    Dir.glob ($juddir + 'Applications' + '*.rb').to_s do |rb|
       require (File.basename rb)
     end
     case RbConfig::CONFIG['host_os']
@@ -281,26 +293,25 @@ begin
     end
     require 'http/cookie_jar/abstract_store'
     require 'http/cookie_jar/hash_store'
+    require 'net/ftp'
   when 'help'
     puts 'jud'
-    puts ' [branch <application> <branch>]'
+    puts ' [branch <branch>]'
     puts ' [configure]'
-    puts ' [build <application> [<project>]]'
-    puts ' [submit <application> [CONTINUOUS|EXPERIMENTAL|NIGHTLY] [project]]'
-    puts ' [deploy <application> <project>]'
-    puts ' [install <app> [+<opt>]*[-<opt>]*]'
+    puts ' [build [<project>]]'
+    puts ' [submit [CONTINUOUS|EXPERIMENTAL|NIGHTLY] [project]]'
+    puts ' [deploy <project>]'
+    puts ' [install [<app>] [+<opt>]*[-<opt>]*]'
     puts ' [option <path1> <pathn>* <value>'
     puts ' [options <project>]'
-    puts ' [tag <application> <tag>]'
-    puts ' [tags <application>]'
+    puts ' [tag <tag>]'
+    puts ' [tags]'
   when 'branch'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
     app.scm_tool.branch app.src, ARGV.shift
   when 'build'
     ARGV.shift
-    appname = ARGV.shift
-    load_application appname
     if ARGV.length > 0 then
       Application.build appname, ARGV.shift
     else
@@ -308,8 +319,6 @@ begin
     end
   when 'deploy'
     ARGV.shift
-    appname = ARGV.shift
-    load_application appname
     if ARGV.length > 0
       Application.deploy appname, ARGV.shift
     else
@@ -320,23 +329,73 @@ begin
     subsubclasses(Application).each do |c|
       puts "  #{c}"
     end
+  when 'dependencies'
+    ARGV.shift
+    if ARGV.length > 0
+      Application.dependencies appname, ARGV.shift
+    else
+      Application.dependencies appname
+    end
+  when 'enable'
+    ARGV.shift
+    toolname = ARGV.shift
+    exit if $platform_config['tools'].include? toolname
+    if Jud::Config.instance.config['tools'].key? toolname
+      $platform_config['tools'] << toolname
+    else
+      puts (Platform.red "I am sorry but I did not find a tool named #{toolname}.")
+      puts (Platform.red "Could I suggest you to run `jud configure` or `jud list tools` ?")
+    end
   when 'install'
     ARGV.shift
-    name = ARGV.shift
-    options = {}
-    while ARGV.length > 0
-      arg = ARGV.shift
-      case arg[0]
-      when '-'
-        options[arg[1..-1].to_sym] = false
-      when '+'
-        options[arg[1..-1].to_sym] = true
+    if ARGV.length > 0 then
+      Application.install appname, ARGV.shift
+    else
+      Application.install appname
+    end
+    #options = {}
+    #while ARGV.length > 0
+    #  arg = ARGV.shift
+    #  case arg[0]
+    #  when '-'
+    #    options[arg[1..-1].to_sym] = false
+    #  when '+'
+    #    options[arg[1..-1].to_sym] = true
+    #  end
+    #end
+  when 'list'
+    ARGV.shift
+    $do_nothing = true
+    case ARGV.shift
+    when 'applications'
+      Dir.glob ($juddir + 'Applications' + '*.rb').to_s do |rb|
+        load rb
+      end
+      Dir.glob ($home + 'Applications' + '*.rb').to_s do |rb|
+        load rb
+      end
+      $applications.each do |app|
+        puts "  #{app}"
+      end
+    when 'platforms'
+      Jud::Config.instance.config['platforms'].each do |name, _|
+        puts "  #{name}"
+      end
+    when 'tools'
+      tools = {}
+      Jud::Config.instance.config['tools'].each do |name, config|
+        tools[config['instanceof']] = []
+      end
+      Jud::Config.instance.config['tools'].each do |name, config|
+        tools[config['instanceof']] << name
+      end
+      tools.each do |classname, instances|
+        puts "  #{classname}"
+        instances.each do |instance|
+          puts "  |--#{instance}"
+        end
       end
     end
-    filename = $home + 'Projects' + "#{name.downcase}.rb"
-    load filename.to_s
-    claz = Object.const_get(name)
-    claz.new({ :application => 'main', :options => options }).install_me
   when 'options'
     ARGV.shift
     claz = Object.const_get(ARGV.shift)
@@ -362,8 +421,6 @@ begin
     app.pack
   when 'submit'
     ARGV.shift
-    appname = ARGV.shift
-    load_application appname
     mode = SubmitTool::EXPERIMENTAL
     if ARGV.length > 0 then
       arg = ARGV.shift
@@ -379,6 +436,24 @@ begin
     end
     prjname = ARGV.shift if ARGV.length > 0
     Application.submit appname, prjname, { :mode => mode }
+  when 'switch'
+    ARGV.shift
+    arg = ARGV.shift
+    if arg == 'main'
+      Jud::Config.instance.config['main']['application'] = 'main'
+    elsif Jud::Config.instance.config['platforms'].key? arg
+      Jud::Config.instance.config['main']['platform'] = arg
+    else
+      begin
+        load $home.join('Applications', "#{arg.downcase}.rb").to_s
+        Jud::Config.instance.config['main']['application'] = arg
+        puts (Platform.green "Switch to application #{arg}")
+      rescue LoadError => e
+        puts (Platform.red "#{arg} is not a platform and I can't load an application with this name.")
+        puts (Platform.red "")
+        puts e
+      end
+    end
   when 'tag'
     ARGV.shift
     app = Object.const_get(ARGV.shift).new
@@ -390,19 +465,13 @@ begin
   when 'update'
     ARGV.shift
     scm.update $home
-    if ARGV.length > 0 then
-      appname = ARGV.shift
-      load_application appname
-      Application.update
-    end
+    Application.update
   when 'upload'
     ARGV.shift
-    appname = ARGV.shift
-	project = ARGV.shift
-	load_application appname
-	Application.upload appname, project
+    project = ARGV.shift
+    Application.upload appname, project
   end
-
+  
 rescue Interrupt => e
   puts
   puts (Platform.red "Why do you want to interrupt me ?")
@@ -410,5 +479,6 @@ rescue Interrupt => e
 rescue Platform::Error, Project::Error, Tool::Error => e
   puts (Platform.red "An error has been caught : could you do something for me ?")
   puts e
+  puts e.backtrace
   exit -1
 end

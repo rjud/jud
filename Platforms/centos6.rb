@@ -1,4 +1,4 @@
-require 'linux'
+require 'Platforms/linux'
 
 class CentOS6 < Linux
   

@@ -46,7 +46,14 @@ class Platform
     config['install'] = default_install prefix, name
     config['packages'] = default_packages prefix
     config['trash'] = default_trash prefix
-    config['composites'] = []
+    if Platform.is_windows? then
+      config['CMake Generator'] = 'NMake Makefiles'
+      #config['CMake Native Build Tool'] = ''
+    else
+      config['CMake Generator'] = 'Make Makefiles'
+      #config['CMake Native Build Tool'] = ''
+    end
+    config['arch'] = 'x86'
   end
   
   def self.default_home prefix; prefix.join('home').to_s; end
@@ -56,7 +63,7 @@ class Platform
   def self.default_packages prefix; prefix.join('packages').to_s; end
   def self.default_trash prefix; prefix.join("trash").to_s; end
   
-  attr_reader :name, :language_to_composite
+  attr_reader :name#, :language_to_composite
   
   def initialize name
     @name = name
@@ -64,7 +71,7 @@ class Platform
     @tool_configs = {}
     @language_to_compiler = {}
     @repo_config = Jud::Config.instance.get_repo_config @config['repository']
-    @language_to_composite = {}
+    #@language_to_composite = {}
     prefix = Pathname.new @repo_config['dir']
     $home = path_from_config 'home', (Platform.default_home prefix)
     $src = path_from_config 'src', (Platform.default_src prefix)
@@ -95,51 +102,53 @@ class Platform
     end
   end
   
-  def setup composite
-    begin
-      load $juddir.join("Platforms", "#{composite.downcase}.rb")
-      klass = Object.const_get(composite)
-      klass.create @config
-      @config['composites'] << klass.name
-    rescue LoadError
-      raise Error, "Can't load platform #{composite}"
-    end
-  end
+  #def setup composite
+  #  begin
+  #    load $juddir.join("Platforms", "#{composite.downcase}.rb")
+  #    klass = Object.const_get(composite)
+  #    klass.create @config
+  #    @config['composites'] << klass.name
+  #  rescue LoadError
+  #    raise Error, "Can't load platform #{composite}"
+  #  end
+  #end
   
-  def load_composites
-    @config['composites'].each do |composite|
-      load_composite composite
-    end
-  end
+  #def load_composites
+  #  @config['composites'].each do |composite|
+  #    load_composite composite
+  #  end
+  #end
   
-  def load_composite name
-    begin
-      #load $juddir.join("Platforms", "#{name.downcase}.rb")
-      require "#{name.downcase}.rb"
-      composite = Object.const_get(name).new name
-      composite.class.languages.each do |language|
-        if language_to_composite.has_key? language then
-          raise Error, "There is already a platform for the language #{language.name}"
-        else
-          language_to_composite[language] = composite
-        end
-      end
-    rescue LoadError
-      raise Error, "Can't load platform #{composite}"
-    end
-  end
+  #def load_composite name
+  #  begin
+  #    load $juddir.join("Platforms", "#{name.downcase}.rb")
+  #    #load "Platforms/#{name.downcase}.rb"
+  #    composite = Object.const_get(name).new name
+  #    composite.class.languages.each do |language|
+  #      if language_to_composite.has_key? language then
+  #        raise Error, "There is already a platform for the language #{language.name}"
+  #      else
+  #        language_to_composite[language] = composite
+  #      end
+  #    end
+  #  rescue LoadError => e
+  #    raise Error, "Can't load platform #{name}\n  #{e.backtrace}"
+  #  end
+  #end
   
-  def get_composite_for_language language
-    if language_to_composite.has_key? language then
-      language_to_composite[language]
-    else
-      raise Error, "Can't find a platform for the language #{language.name}"
-    end
-  end
+  #def get_composite_for_language language
+  #  if language_to_composite.has_key? language then
+  #    language_to_composite[language]
+  #  else
+  #    raise Error, "Can't find a platform for the language #{language.name}"
+  #  end
+  #end
   
   def cmake_native_build_tool
-    tool = @config['Native Build Tool']
-    Object.const_get(tool).new(tool)
+    toolname = @config['CMake Native Build Tool']
+    #classname = $tools_config[toolname]['instanceof']
+    tool = get_tool toolname #classname
+    tool
   end
   
   def get_compiler language
@@ -170,6 +179,10 @@ class Platform
       configs.each do | value |
         compiler, name, config = value[0], value[1], value[2]
         if @config['tools'].include? name
+          unless found_compiler.nil?
+            puts (Platform.red "Found at least two compilers for language #{language}")
+            abort
+          end
           puts (Platform.green "Found compiler #{compiler} for language #{language}")
           found_compiler = compiler.new 
         end
@@ -341,20 +354,20 @@ class Platform
   
   def pack_tool
     if Platform.is_windows? then
-      require 'tarball'
+      require 'Tools/tarball'
       Jud::Tools::Tarball.new
-      #require 'ziptool'
+      #require 'Tools/ziptool'
       #ZipTool.new
     else
-      require 'tarball'
+      require 'Tools/tarball'
       Jud::Tools::Tarball.new
     end
   end
   
   def memcheck_tool
     if Platform.is_linux? then
-      require 'valgrind'
-      Valgrind.new
+      require 'Tools/valgrind'
+      Jud::Tools::Valgrind.new
     else
       nil
     end

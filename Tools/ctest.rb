@@ -47,11 +47,25 @@ module Jud::Tools
           file.write text
         end
       end
+      # Open the file CTestConfig.cmake to get the URL.
+      url = ''
+      File.open (srcdir + 'CTestConfig.cmake').to_s, 'r' do |file|
+        while line = file.gets
+          if /^set\(CTEST_DROP_METHOD "(?<protocol>.*)"\)/ =~ line
+            url += protocol + '://'
+          end
+          if /^set\(CTEST_DROP_SITE "(?<site>.*)"\)/ =~ line
+            url += site if defined? site
+          end
+        end
+      end
       # Call CTest
       old_lang = ENV['LANG']
       ENV['LANG'] = 'en'
+      Platform.set_env_proxy if Platform.use_proxy? url
       cmd = '"' + path + '" -V -S ' + script_filename.to_s
       exit_status = Platform.execute cmd, safe: true, keep: '!!!!'
+      Platform.unset_env_proxy if Platform.use_proxy? url
       ENV['LANG'] = old_lang
       # Parse exit
       if exit_status[0].success? then

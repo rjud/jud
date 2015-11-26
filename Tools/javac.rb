@@ -1,4 +1,5 @@
 require 'java'
+require 'compiler'
 
 module Jud::Tools
   class Javac < Jud::Compiler

@@ -22,9 +22,9 @@ class PackTool < Tool
   def self.unpack tool, filename, destination
     case filename.extname
     when '.zip'
-      ZipTool.new.unpack filename, destination
+      Jud::Tools::ZipTool.new.unpack filename, destination
     when '.gz'
-      Tarball.new('tar.gz').unpack filename, destination
+      Jud::Tools::Tarball.new('tar.gz').unpack filename, destination
     else
       tool.unpack filename, destination
     end

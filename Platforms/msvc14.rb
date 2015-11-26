@@ -1,6 +1,6 @@
 require 'c'
 require 'cxx'
-require 'win32'
+require 'Platforms/win32'
 
 class Msvc14 < Jud::Win32
   
@@ -20,14 +20,14 @@ class Msvc14 < Jud::Win32
     end
     
     def compiler
-      require 'cl14'
+      require 'Tools/cl14'
       Cl14
     end
   
   end
   
   def initialize name
-    require 'cl14'
+    require 'Tools/cl14'
     super(name)
   end
   

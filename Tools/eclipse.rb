@@ -1,7 +1,7 @@
 require 'build_tool'
-require 'ant'
+require 'Tools/ant'
 #require 'antwrap'
-require 'javac'
+require 'Tools/javac'
 require 'rexml/document'
 
 include REXML
