@@ -225,6 +225,10 @@ class Project
     case args
     when Proc
       [args.call]
+    when String
+      [args]
+    when Pathname
+      [args.to_s]
     when Hash
       [].tap do |evals|
         args.each do |prj, arg|
