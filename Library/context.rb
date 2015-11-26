@@ -109,10 +109,14 @@ class Context
   end
   
   def python *args
-    require 'Tools/python'
-    cmd = Jud::Tools::Python.new.path
+    cmd = ($platform.get_tool 'Python').path
     puts (Platform.yellow "PYTHONPATH: #{ENV['PYTHONPATH']}")
-    run cmd, args
+    run cmd, *args
+  end
+  
+  def perl *args
+    cmd = ($platform.get_tool 'Perl').path
+    run cmd, *args
   end
   
   def eval_option func
