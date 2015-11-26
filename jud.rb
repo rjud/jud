@@ -464,8 +464,14 @@ begin
     app.class.scm_tool.tags app.srcdir :Debug
   when 'update'
     ARGV.shift
-    scm.update $home
     Application.update
+  when 'upgrade'
+    ARGV.shift
+    url = 'https://github.com/rjud/jud.git'
+    Platform.set_env_proxy if Platform.use_proxy? url
+    (Jud::Tools::Git.new url).update $juddir
+    Platform.unset_env_proxy if Platform.use_proxy? url
+    scm.update $home
   when 'upload'
     ARGV.shift
     project = ARGV.shift
