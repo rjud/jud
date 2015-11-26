@@ -1,16 +1,14 @@
 require 'pack_tool'
 
-#require 'zip'
-
 module Jud::Tools
   class ZipTool < PackTool
     
     class << self
-      def load_path; false; end
+      def pure_ruby; true; end
     end
     
-    def initialize config={}
-      super config
+    def initialize ext='.zip', config={}
+      super ext, config
     end
     
     def pack_impl filename, directory

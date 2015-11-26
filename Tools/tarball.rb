@@ -83,10 +83,15 @@ module Jud::Tools
           if entry.directory?
             FileUtils.mkdir_p dest, :mode => entry.header.mode, :verbose => false
           elsif entry.header.typeflag == '2'
+	    FileUtils.mkdir_p Pathname(dest).dirname.to_s, :verbose => false
             Dir.chdir Pathname(dest).dirname
             linkname = Pathname(dest).basename
             FileUtils.rm linkname if File.exist? linkname
-            File.symlink entry.header.linkname, linkname
+	    begin
+	      File.symlink entry.header.linkname, linkname
+	    rescue Errno::EROFS => e
+	      puts (Platform.red e)
+	    end
           else
             # Sometimes, the TarReader library doesn't consider that a file is a file ???
             puts (Platform.red "#{entry.full_name} doesn't seem to be a file") if not entry.file?

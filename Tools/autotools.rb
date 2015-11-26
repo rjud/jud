@@ -40,7 +40,7 @@ module Jud::Tools
       resolve_options(context, options).each do |name, opt|
         if opt.name == 'CPPFLAGS'
           cmd += " #{opt.name}=\"#{option_to_s opt}"
-          if Platform.is_linux? and Platform.is_64? then
+          if Platform.is_linux? and $platform_config['arch'] == 'x64'
             cmd += " -fPIC"
             fpicset = true
           end 
@@ -49,7 +49,7 @@ module Jud::Tools
           cmd += " #{opt.name}=#{option_to_s opt}"
         end
       end
-      if Platform.is_linux? and Platform.is_64? then
+      if Platform.is_linux? and $platform_config['arch'] == 'x64'
         cmd += " CPPFLAGS=-fPIC" unless fpicset
       end
       Platform.execute cmd, wd: build

@@ -4,7 +4,7 @@ module Jud::Tools
   class Wget < SCMTool
     
     class << self
-      def pure_ruby; true; end
+      def pure_ruby; true; end      
     end
     
     #
@@ -17,6 +17,24 @@ module Jud::Tools
     #
     def initialize url, options={}
       super url, options
+      if Platform.is_windows?
+        @cert = File.expand_path "~/.jud/cacert.pem"
+        download_http 'http://curl.haxx.se/ca/cacert.pem', @cert.to_s unless File.exist? @cert          
+      end
+    end
+    
+    def download_http url, filename
+      require 'mechanize'
+      agent = Mechanize.new
+      agent.set_proxy $general_config['proxy']['host'], $general_config['proxy']['port'].to_i if Platform.use_proxy? url
+      agent.pluggable_parser.default = Mechanize::Download
+      #agent.agent.http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      agent.agent.http.ca_file = @cert if Platform.is_windows?
+      begin
+        agent.get(url).save filename
+      rescue SocketError => e
+        puts (Platform.red "I can't download #{url} over HTTP\n#{e}")
+      end
     end
     
     def checkout src, prj, options = {}
@@ -28,9 +46,11 @@ module Jud::Tools
       end
       packtool, ext = 
         if surl.include? '.tar.gz' then
-          [Tarball.new, '.tar.gz']
+          require 'Tools/tarball'
+          [Jud::Tools::Tarball.new, '.tar.gz']
         elsif surl.include? '.zip' then
-          [ZipTool.new, '.zip']
+          require 'Tools/ziptool'
+          [Jud::Tools::ZipTool.new, '.zip']
         else
           raise Error, "wget: unkown extension for URL #{surl}"
         end
@@ -40,16 +60,7 @@ module Jud::Tools
       if not File.exists? filename then
         puts (Platform.blue "Downloading #{surl} to #{filename}...")
         if surl.start_with? 'http' then
-          require 'mechanize'
-          agent = Mechanize.new
-          agent.set_proxy $general_config['proxy']['host'], $general_config['proxy']['port'].to_i if Platform.use_proxy? surl
-          agent.pluggable_parser.default = Mechanize::Download
-          # no-check-certificate
-          begin
-            agent.get(surl).save tmpfile.to_s
-          rescue SocketError => e
-            puts (Platform.red "I can't download #{surl} over HTTP\n#{e}")
-          end
+          download_http surl, tmpfile.to_s
         elsif surl.start_with? 'ftp' then
           require 'uri'
           require 'net/ftp'

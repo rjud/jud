@@ -13,18 +13,26 @@ module Jud
     def to_s
       @str
     end
-    
+
+    def == v
+      (self <=> v) == 0
+    end
+
     def < v
       (self <=> v) < 0
+    end
+    
+    def <= v
+      (self < v) or (self == v)
     end
     
     def > v
       (self <=> v) > 0
     end
     
-    def == v
-      (self <=> v) == 0
+    def >= v
+      (self > v) or (self == v)
     end
-    
+        
   end
 end

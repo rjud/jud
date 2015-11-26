@@ -133,7 +133,7 @@ class Project
     end
     if not options[:force] and packfile.exist?
       unpack_this
-    elsif not options[:force] and self.class.repository and self.class.repository.exist? depend.packfile
+    elsif not options[:force] and self.class.repository and self.class.repository.exist? packfile
       download_this
       unpack_this
     else
@@ -722,16 +722,16 @@ class Project
       languages << Jud::Languages::Java
     end
     
-	def perl
+    def perl
       require 'perl'
       languages << Jud::Languages::Perl
     end
-	
-	def python
+    
+    def python
       require 'python'
       languages << Jud::Languages::Python
     end
-	
+    
     def ant &block
       require 'Tools/ant'
       @build_tool = Jud::Tools::Ant.new
@@ -746,6 +746,9 @@ class Project
     
     def cmake &block
       require 'Tools/cmake'
+      @configure_block = nil
+      @build_block = nil
+      @install_block = nil
       @build_tool = Jud::Tools::CMake.new
       @build_tool.instance_eval &block if block_given?
     end
