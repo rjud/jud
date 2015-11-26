@@ -111,12 +111,12 @@ class Context
   def python *args
     cmd = ($platform.get_tool 'Python').path
     puts (Platform.yellow "PYTHONPATH: #{ENV['PYTHONPATH']}")
-    run cmd, args
+    run cmd, *args
   end
   
   def perl *args
     cmd = ($platform.get_tool 'Perl').path
-	run cmd, args
+    run cmd, *args
   end
   
   def eval_option func
