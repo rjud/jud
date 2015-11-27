@@ -572,21 +572,26 @@ class Project
     install_dependencies
     # Submit for each build
     build_types.each do |bt|
-      @contexts[bt].push
-      print_env
-      check = checkoutdir bt
-      src = srcdir bt
-      build = builddir bt
-      buildname = ""
-      buildname += "#{@options[:version]} " if @options.has_key? :version
-      buildname += "#{build_name}"
-      buildname += " #{bt}"
-      @scm_tool.checkout check, self, @options if not File.directory? check
-      patch_this bt
-      s = self.class.submit_tool.submit self, src, build, @install, bt, buildname, options[:mode], @options[:options]
-      status = s if s > status
-      install_this bt
-      @contexts[bt].pop
+      begin
+        @contexts[bt].push
+        print_env
+        check = checkoutdir bt
+        src = srcdir bt
+        build = builddir bt
+        buildname = ""
+        buildname += "#{@options[:version]} " if @options.has_key? :version
+        buildname += "#{build_name}"
+        buildname += " #{bt}"
+        @scm_tool.checkout check, self, @options if not File.directory? check
+        patch_this bt
+        s = self.class.submit_tool.submit self, src, build, @install, bt, buildname, options[:mode], @options[:options]
+        status = s if s > status
+        install_this bt
+        @contexts[bt].pop
+      rescue => e
+        puts (Platform.red e)
+        puts (Platform.red e.backtrace.join("\n\t"))
+      end
     end
     pack_this if pack_this?
     # Upload if good
