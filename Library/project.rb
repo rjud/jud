@@ -307,6 +307,7 @@ class Project
     
   def checkout_this build_type
     src = checkoutdir build_type
+    puts src
     if not File.directory? src
       puts (Platform.red "I can't find the sources of #{name} #{@options[:version]}. I will try to download them.")
       safe = (not self.class.alternate_scm_tool.nil?)
@@ -573,13 +574,14 @@ class Project
     build_types.each do |bt|
       @contexts[bt].push
       print_env
+      check = checkoutdir bt
       src = srcdir bt
       build = builddir bt
       buildname = ""
       buildname += "#{@options[:version]} " if @options.has_key? :version
       buildname += "#{build_name}"
       buildname += " #{bt}"
-      @scm_tool.checkout src, self, @options if not File.directory? src
+      @scm_tool.checkout check, self, @options if not File.directory? check
       patch_this bt
       s = self.class.submit_tool.submit self, src, build, @install, bt, buildname, options[:mode], @options[:options]
       status = s if s > status
