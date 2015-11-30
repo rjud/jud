@@ -744,9 +744,9 @@ class Project
       @build_tool.instance_eval &block if block_given?
     end
     
-    def cmake &block
+    def cmake wnodev=false, &block
       require 'Tools/cmake'
-      @build_tool = Jud::Tools::CMake.new
+      @build_tool = Jud::Tools::CMake.new wnodev
       @build_tool.instance_eval &block if block_given?
     end
     
