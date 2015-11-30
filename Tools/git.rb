@@ -33,10 +33,10 @@ module Jud::Tools
     # Optimize to clone once from the remote server and then use it as a local server.
     
     def checkout src, prj, options = {}
-      
-	  tempsrc = src.dirname + "#{src.basename.to_s}-temp"
+            
+      tempsrc = src.dirname + "#{src.basename.to_s}-temp"
 	  
-	  cmd = "\"#{path}\" clone"
+      cmd = "\"#{path}\" clone"
       cmd += " #{@options[:args]}" if @options.has_key? :args
       cmd += " #{@url} #{tempsrc}"
       Platform.execute cmd, {:wd => src.dirname}.merge(options)
@@ -52,8 +52,8 @@ module Jud::Tools
       
       Platform.execute cmd, {:wd => tempsrc}.merge(options) if not cmd.nil?
 	  
-	  Dir.chdir src.dirname
-	  File.rename tempsrc.basename.to_s, src.basename.to_s
+      Dir.chdir src.dirname
+      File.rename tempsrc.basename.to_s, src.basename.to_s
       
     end
     
