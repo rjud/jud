@@ -21,15 +21,15 @@ module Jud::Tools
       @ant_home = Pathname.new(path).dirname.dirname
     end
     
-    def configure src, build, install, build_type, options={}
+    def configure src, build, install, build_type, prj, options={}
       @src = src
     end
     
-    def build build
+    def build *args
       Platform.execute "#{path} -f build.xml", wd: @src
     end
     
-    def install build
+    def install *args
       
     end
     

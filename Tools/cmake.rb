@@ -31,10 +31,11 @@ module Jud::Tools
     
     attr_reader :arch, :native_build_tool, :generator
     
-    def initialize config={}
+    def initialize wnodev=false, config={}
       
       super config
       
+	  @wnodev = wnodev
       if $platform_config.include? 'CMake Generator'
         @generator = $platform_config['CMake Generator']
       elsif Platform.is_windows?
@@ -88,6 +89,7 @@ module Jud::Tools
       cmakecache = File.join(build, 'CMakeCache.txt').to_s
       File.delete cmakecache if File.exists? cmakecache
       cmd = '"' + path + '"'
+      cmd += ' -Wno-dev'
       cmd += ' -G "' + @generator + '"'
       get_options(src, build, install, build_type, prj, options).each do |opt|
         if opt.enabled
