@@ -50,7 +50,7 @@ class Platform
       config['CMake Generator'] = 'NMake Makefiles'
       #config['CMake Native Build Tool'] = ''
     else
-      config['CMake Generator'] = 'Make Makefiles'
+      config['CMake Generator'] = 'Unix Makefiles'
       #config['CMake Native Build Tool'] = ''
     end
     config['arch'] = 'x86'
@@ -266,11 +266,35 @@ class Platform
     exit_status = nil
     lines = []
     begin
+      #mutex = Mutex.new
+      #userinput = nil
+      #Thread.new do
+      #  while true do
+      #    temp = $stdin.gets
+      ##    mutex.synchronize do
+       #     userinput = temp
+      #    end
+      #    sleep 0.1
+      #  end
+      #end
       Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
-        while line = stdout_err.gets
-          puts line
-          lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
-        end
+        #$stdin.reopen stdin
+        #while true do
+          while line = stdout_err.gets
+            puts line
+            lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
+            #mutex.synchronize do
+            #  unless userinput.nil?
+            #    stdin.puts userinput
+            #    userinput = nil
+            #  end
+            #end
+            #if line =~ /Do you accept the terms of the license?/
+            #  stdin.puts 'y'
+            #end
+            #sleep 0.1
+          end
+        #end
         exit_status = wait_thr.value
       end
     rescue Errno::ENOENT => e
