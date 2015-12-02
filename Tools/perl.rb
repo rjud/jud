@@ -1,4 +1,5 @@
 load "Library/perl.rb"
+require 'compiler'
 
 module Jud::Tools
   class Perl < Jud::Compiler
