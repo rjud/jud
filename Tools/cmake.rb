@@ -51,10 +51,10 @@ module Jud::Tools
           @native_build_tool = $platform.get_tool $platform_config['CMake Native Build Tool']
         elsif @generator =~ /NMake Makefiles/
           @native_build_tool = $platform.get_tool 'NMake'
-          $platform_config['CMake Native Build Tool'] = @native_build_tool.class.name
+          $platform_config['CMake Native Build Tool'] = Tool.toolname @native_build_tool.class
         elsif @generator =~ /Unix Makefiles/
           @native_build_tool = $platform.get_tool 'Make'
-          $platform_config['CMake Native Build Tool'] = @native_build_tool.class.name
+          $platform_config['CMake Native Build Tool'] = Tool.toolname @native_build_tool.class
         end
       end
       
