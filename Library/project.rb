@@ -401,6 +401,7 @@ class Project
   
   def build_this build_type
     build = builddir build_type
+    FileUtils.mkdir_p build unless build.directory?
     if self.class.build_block.nil? then
       return if self.class.build_tool.nil?
       self.class.build_tool.build build, build_type, @options[:options]

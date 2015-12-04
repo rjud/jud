@@ -24,6 +24,7 @@ module Jud::Tools
     
     def configure src, build, install, build_type, prj, options={}
       configure = File.join(src, 'configure')
+      File.chmod(0744, configure)
       unless File.exists? configure then
         Platform.execute "aclocal -I config", wd: src
         Platform.execute "libtoolize --force", wd: src
@@ -38,7 +39,7 @@ module Jud::Tools
       fpicset = false
       context = Context.new(prj, build_type)
       resolve_options(context, options).each do |name, opt|
-        if opt.name == 'CPPFLAGS'
+        if opt.name == 'CPPFLAGS' or opt.name == 'CFLAGS'
           cmd += " #{opt.name}=\"#{option_to_s opt}"
           if Platform.is_linux? and $platform_config['arch'] == 'x64'
             cmd += " -fPIC"
@@ -46,11 +47,16 @@ module Jud::Tools
           end 
           cmd += "\""
         else
-          cmd += " #{opt.name}=#{option_to_s opt}"
+          if opt.value.size > 0
+            cmd += " #{opt.name}=#{option_to_s opt}"
+          else
+            cmd += " #{opt.name}"
+          end
         end
       end
       if Platform.is_linux? and $platform_config['arch'] == 'x64'
         cmd += " CPPFLAGS=-fPIC" unless fpicset
+        cmd += " CFLAGS=-fPIC" unless fpicset
       end
       Platform.execute cmd, wd: build
     end
