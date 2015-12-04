@@ -191,7 +191,13 @@ module Application
         submit_one prj, options
       end
     else
-      prj = Object.const_get projname
+      begin
+        prj = Object.const_get projname
+      rescue
+        dep projname.to_sym
+        $arguments[projname.to_sym][:application] = 'main'
+        prj = Object.const_get projname
+      end
       submit_one prj, options
     end
   end

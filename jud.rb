@@ -250,19 +250,24 @@ begin
   
   $:.unshift $home.join('Projects').to_s
   $:.unshift $home.join('Applications').to_s
+
   
-  appname = $general_config['application']
-  begin
-    if appname == 'main'
-      # Nothing to do
-    else
-      load "#{appname.downcase}.rb"
+  def load_application appname
+    begin
+      if appname == 'main'
+        # Nothing to do
+      else
+        load "#{appname.downcase}.rb"
+      end
+    rescue LoadError => e
+      puts (Platform.red "Can't load application #{appname}")
+      puts (Platform.red e)
+      exit 1
     end
-  rescue LoadError => e
-    puts (Platform.red "Can't load application #{appname}")
-    puts (Platform.red e)
-    exit 1
   end
+
+  appname = $general_config['application']
+  load_application appname
   
   puts Platform.green("****************************")
   puts Platform.green("    Application #{appname}  ")
@@ -423,7 +428,10 @@ begin
   when 'submit'
     ARGV.shift
     mode = SubmitTool::EXPERIMENTAL
-    if ARGV.length > 0 then
+    prjname = nil
+    case ARGV.first
+    when '--mode'
+      ARGV.shift
       arg = ARGV.shift
       if arg == 'EXPERIMENTAL'
         mode = SubmitTool::EXPERIMENTAL
@@ -432,10 +440,16 @@ begin
       elsif arg == 'NIGHTLY'
         mode = SubmitTool::NIGHTLY
       else
-        prjname = arg
+        puts (Platform.red "Unknow mode #{arg}")
+        exit 1
       end
+    when '--appname'
+      ARGV.shift
+      appname = ARGV.shift
+      load_application appname
+    else
+      prjname = ARGV.shift
     end
-    prjname = ARGV.shift if ARGV.length > 0
     Application.submit appname, prjname, { :mode => mode }
   when 'switch'
     ARGV.shift

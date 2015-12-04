@@ -198,8 +198,9 @@ class Platform
   end
   
   def get_tool name
-    load ($juddir + 'Tools' + "#{name.downcase}.rb").to_s
-    return Object.const_get("Jud::Tools::#{name}").new
+    classname = $tools_config[name]['instanceof']
+    load ($juddir + 'Tools' + "#{classname.downcase}.rb").to_s
+    return Object.const_get("Jud::Tools::#{classname}").new
   end
   
   def get_tool_config classname
