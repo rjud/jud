@@ -147,7 +147,7 @@ class Platform
   def cmake_native_build_tool
     toolname = @config['CMake Native Build Tool']
     #classname = $tools_config[toolname]['instanceof']
-    tool = get_tool toolname #classname
+    tool = get_tool_by_name toolname #classname
     tool
   end
   
@@ -197,9 +197,18 @@ class Platform
     
   end
   
-  def get_tool name
-    load ($juddir + 'Tools' + "#{name.downcase}.rb").to_s
-    return Object.const_get("Jud::Tools::#{name}").new
+  def get_tool_by_classname classname
+    load ($juddir + 'Tools' + "#{classname.downcase}.rb").to_s
+    Object.const_get("Jud::Tools::#{classname}").new    
+  end
+  
+  def get_tool_by_name name
+    if $tools_config.key? name
+      classname = $tools_config[name]['instanceof']
+      get_tool_by_classname classname
+    else
+      raise Error, "Can't find tool with name #{name}" if classname.nil?
+    end
   end
   
   def get_tool_config classname

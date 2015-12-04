@@ -12,7 +12,7 @@ module Jud::Tools
     
     def initialize config={}
       super config
-      @native_build_tool = $platform.get_tool 'Make'
+      @native_build_tool = $platform.get_tool_by_classname 'Make'
     end
     
     def option_to_s opt

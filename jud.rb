@@ -198,6 +198,21 @@ if not Jud::Config.instance.config['main'].include? 'platform' then
 end
 
 platform = $general_config['platform']
+appname = $general_config['application']
+
+while true do
+  case ARGV.first
+  when '--platform'
+    ARGV.shift
+    platform = ARGV.shift
+  when '--appname'
+    ARGV.shift
+    appname = ARGV.shift
+  else
+    break
+  end
+end
+
 $platform_config = Jud::Config.instance.config['platforms'][platform]
 
 puts Platform.green("*************************************")
@@ -250,19 +265,23 @@ begin
   
   $:.unshift $home.join('Projects').to_s
   $:.unshift $home.join('Applications').to_s
+
   
-  appname = $general_config['application']
-  begin
-    if appname == 'main'
-      # Nothing to do
-    else
-      load "#{appname.downcase}.rb"
+  def load_application appname
+    begin
+      if appname == 'main'
+        # Nothing to do
+      else
+        load "#{appname.downcase}.rb"
+      end
+    rescue LoadError => e
+      puts (Platform.red "Can't load application #{appname}")
+      puts (Platform.red e)
+      exit 1
     end
-  rescue LoadError => e
-    puts (Platform.red "Can't load application #{appname}")
-    puts (Platform.red e)
-    exit 1
   end
+
+  load_application appname
   
   puts Platform.green("****************************")
   puts Platform.green("    Application #{appname}  ")
@@ -422,20 +441,28 @@ begin
     app.pack
   when 'submit'
     ARGV.shift
+    require 'submit_tool'
     mode = SubmitTool::EXPERIMENTAL
-    if ARGV.length > 0 then
-      arg = ARGV.shift
-      if arg == 'EXPERIMENTAL'
-        mode = SubmitTool::EXPERIMENTAL
-      elsif arg == 'CONTINUOUS'
-        mode = SubmitTool::CONTINUOUS
-      elsif arg == 'NIGHTLY'
-        mode = SubmitTool::NIGHTLY
+    prjname = nil
+    while ARGV.length > 0
+      case ARGV.first
+      when '--mode'
+        ARGV.shift
+        arg = ARGV.shift
+        if arg == 'EXPERIMENTAL'
+          mode = SubmitTool::EXPERIMENTAL
+        elsif arg == 'CONTINUOUS'
+          mode = SubmitTool::CONTINUOUS
+        elsif arg == 'NIGHTLY'
+          mode = SubmitTool::NIGHTLY
+        else
+          puts (Platform.red "Unknow mode #{arg}")
+          exit 1
+        end
       else
-        prjname = arg
+        prjname = ARGV.shift
       end
     end
-    prjname = ARGV.shift if ARGV.length > 0
     Application.submit appname, prjname, { :mode => mode }
   when 'switch'
     ARGV.shift

@@ -36,7 +36,7 @@ module Jud::Tools
             end
           end
         else
-          super
+          super 'javac'
         end
       end
       
@@ -44,11 +44,20 @@ module Jud::Tools
     
     def initialize config={}
       super config
-      @version = Jud::Version.new @config['version']
+      @version = (Jud::Version.new @config['version']) if @config.key? 'version'
+    end
+
+    def version
+      return @version unless @version.nil?
+      cmd = "#{path} -version"
+      exit_status = Platform.execute cmd, safe: true, keep: 'javac'
+      /javac (?<ver>.*)/ =~ exit_status[1].first
+      @version = Jud::Version.new ver
+      @version
     end
     
     def build_name current_build_name, language
-      "#{current_build_name}-jdk#{@version.minor}"
+      "#{current_build_name}-jdk#{version.minor}"
     end
     
     def setenv context

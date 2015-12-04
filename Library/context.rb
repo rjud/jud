@@ -109,13 +109,13 @@ class Context
   end
   
   def python *args
-    cmd = ($platform.get_tool 'Python').path
+    cmd = ($platform.get_tool_by_classname 'Python').path
     puts (Platform.yellow "PYTHONPATH: #{ENV['PYTHONPATH']}")
     run cmd, *args
   end
   
   def perl *args
-    cmd = ($platform.get_tool 'Perl').path
+    cmd = ($platform.get_tool_by_classname 'Perl').path
     run cmd, *args
   end
   
