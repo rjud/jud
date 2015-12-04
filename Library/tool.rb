@@ -22,27 +22,6 @@ class Tool
     def load_path; return true; end
     def pure_ruby; return false; end
     
-    #def get_tool_configuration name
-    #  $tools_config[name]
-    #end
-    
-    #def get_tool_configurations klass
-    #  $tools_config.each do |name, configuration|
-    #    tlname = (configuration.key? 'instanceof') ? configuration['instanceof'] : name
-    #  end
-    #end
-    
-    #def get_passwords
-    #  if $platform_config then
-    #    unless $platform_config['tools'].include? name then
-    #      $platform_config['tools'][name] = name
-    #    end
-    #    return $tools_passwords[$platform_config['tools'][name]]
-    #  else
-    #    return $tools_passwords[name]
-    #  end
-    #end
-    
     def configure name=nil, exe=nil
       tlname = name.nil? ? (toolname self) : name
       unless tlname.nil? then

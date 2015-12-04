@@ -48,12 +48,12 @@ module Jud::Tools
       
       unless @generator =~ /Visual Studio/
         if $platform_config.include? 'CMake Native Build Tool'
-          @native_build_tool = $platform.get_tool $platform_config['CMake Native Build Tool']
+          @native_build_tool = $platform.get_tool_by_name $platform_config['CMake Native Build Tool']
         elsif @generator =~ /NMake Makefiles/
-          @native_build_tool = $platform.get_tool 'NMake'
+          @native_build_tool = $platform.get_tool_by_classname 'NMake'
           $platform_config['CMake Native Build Tool'] = Tool.toolname @native_build_tool.class
         elsif @generator =~ /Unix Makefiles/
-          @native_build_tool = $platform.get_tool 'Make'
+          @native_build_tool = $platform.get_tool_by_classname 'Make'
           $platform_config['CMake Native Build Tool'] = Tool.toolname @native_build_tool.class
         end
       end
