@@ -198,6 +198,21 @@ if not Jud::Config.instance.config['main'].include? 'platform' then
 end
 
 platform = $general_config['platform']
+appname = $general_config['application']
+
+while true do
+  case ARGV.first
+  when '--platform'
+    ARGV.shift
+    platform = ARGV.shift
+  when '--appname'
+    ARGV.shift
+    appname = ARGV.shift
+  else
+    break
+  end
+end
+
 $platform_config = Jud::Config.instance.config['platforms'][platform]
 
 puts Platform.green("*************************************")
@@ -266,7 +281,6 @@ begin
     end
   end
 
-  appname = $general_config['application']
   load_application appname
   
   puts Platform.green("****************************")
@@ -427,29 +441,29 @@ begin
     app.pack
   when 'submit'
     ARGV.shift
+    require 'submit_tool'
     mode = SubmitTool::EXPERIMENTAL
     prjname = nil
-    case ARGV.first
-    when '--mode'
-      ARGV.shift
-      arg = ARGV.shift
-      if arg == 'EXPERIMENTAL'
-        mode = SubmitTool::EXPERIMENTAL
-      elsif arg == 'CONTINUOUS'
-        mode = SubmitTool::CONTINUOUS
-      elsif arg == 'NIGHTLY'
-        mode = SubmitTool::NIGHTLY
+    while ARGV.length > 0
+      case ARGV.first
+      when '--mode'
+        ARGV.shift
+        arg = ARGV.shift
+        if arg == 'EXPERIMENTAL'
+          mode = SubmitTool::EXPERIMENTAL
+        elsif arg == 'CONTINUOUS'
+          mode = SubmitTool::CONTINUOUS
+        elsif arg == 'NIGHTLY'
+          mode = SubmitTool::NIGHTLY
+        else
+          puts (Platform.red "Unknow mode #{arg}")
+          exit 1
+        end
       else
-        puts (Platform.red "Unknow mode #{arg}")
-        exit 1
+        prjname = ARGV.shift
       end
-    when '--appname'
-      ARGV.shift
-      appname = ARGV.shift
-      load_application appname
-    else
-      prjname = ARGV.shift
     end
+    p appname, prjname, mode
     Application.submit appname, prjname, { :mode => mode }
   when 'switch'
     ARGV.shift
