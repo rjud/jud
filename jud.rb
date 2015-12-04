@@ -463,7 +463,6 @@ begin
         prjname = ARGV.shift
       end
     end
-    p appname, prjname, mode
     Application.submit appname, prjname, { :mode => mode }
   when 'switch'
     ARGV.shift
