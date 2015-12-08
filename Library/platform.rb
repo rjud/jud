@@ -319,7 +319,7 @@ class Platform
   
   def self.find_executable exe, optional=false
     exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
-    ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
+    ENV['PATH'].split(File::PATH_SEPARATOR).reverse_each do |path|
       exts.each do |ext|
         filename = File.join(path, "#{exe}#{ext}")
         return filename if File.executable? filename
@@ -336,7 +336,7 @@ class Platform
   def self.find_executables exe
     executables = []
     exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
-    ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
+    ENV['PATH'].split(File::PATH_SEPARATOR).reverse_each do |path|
       exts.each do |ext|
         filename = File.join path, "#{exe}#{ext}"
         executables << filename if File.executable? filename
