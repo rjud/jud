@@ -25,7 +25,7 @@ set(CTEST_INITIAL_CACHE "
 <% end -%>
 ")
 
-<% if mode != SubmitTool::CONTINUOUS %>
+<% if mode == SubmitTool::NIGHTLY %>
 ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
 <% end -%>
 
@@ -57,7 +57,7 @@ while (${CTEST_ELAPSED_TIME} LESS 43200) # 12 hours
 
     ctest_test(RETURN_VALUE res)
 
-    <% if $platform.memcheck_tool and build_type == :Debug and mode != SubmitTool::CONTINUOUS -%>
+    <% if $platform.memcheck_tool and build_type == :Debug and mode == SubmitTool::NIGHTLY -%>
     ctest_memcheck()
     <% end -%>
     
