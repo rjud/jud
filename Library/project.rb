@@ -585,7 +585,7 @@ class Project
         patch_this bt
         s = self.class.submit_tool.submit self, src, build, @install, bt, buildname, options[:mode], @options[:options]
         status = s if s > status
-        install_this bt
+        install_this bt if install_this? status
         @contexts[bt].pop
       rescue => e
         puts (Platform.red e)
@@ -597,6 +597,14 @@ class Project
     upload_this if upload_this_after_submit? status
     deploy_this if deploy_this?
     register_this
+  end
+    
+  def install_this? status
+    case status
+    when SubmitTool::OK then true
+    when SubmitTool::TESTS_NOK then true
+    else false
+    end
   end
   
   def upload_this_after_submit? status
