@@ -6,10 +6,15 @@ module Jud::Tools
     class << self
 
       def configure
-        old_pathext = ENV['PATHEXT']
-        ENV['PATHEXT'] = '.BAT'
-        super
-        ENV['PATHEXT'] = old_pathext
+        if Platform.is_windows?
+          # Only keep ant.bat
+          old_pathext = ENV['PATHEXT']
+          ENV['PATHEXT'] = '.BAT'
+          super
+          ENV['PATHEXT'] = old_pathext
+        else
+          super
+        end
       end
       
     end
