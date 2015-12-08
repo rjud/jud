@@ -87,7 +87,7 @@ module Application
       $projects[sym]
     else
       prj = nil
-      load "#{sym.downcase.to_s}.rb"
+      load "#{sym.to_s.downcase}.rb"
       if $arguments.has_key? sym then
         prj = Object.const_get(sym.to_s).new $arguments[sym]
       else
