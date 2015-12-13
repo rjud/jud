@@ -369,13 +369,14 @@ class Project
               return
             end
           end
-          File.symlink f, new
+          if Platform.is_windows?
+            FileUtils.copy_file f, new
+          else
+            File.symlink f, new
+          end
         rescue Errno::EEXIST => e
           puts (Platform.blue "Files have already been copied. In case of failure, please remove the directory #{build}")
           return
-        rescue Exception => e
-          puts (Platform.red "Symlink not supported: #{e}")
-          abort
         end
       end
     end
@@ -811,7 +812,7 @@ class Project
     
     def svn url, options={}
       require 'Tools/svn'
-      @scm_tool = Jud::Tools::SVN.new url, options
+      @scm_tool = Jud::Tools::SVN.new url, options if $platform.has_tool? 'SVN'
     end
     
     def wget url, options={}

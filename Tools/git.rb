@@ -32,7 +32,7 @@ module Jud::Tools
     
     # Optimize to clone once from the remote server and then use it as a local server.
     
-    def checkout src, prj, options = {}
+    def checkout src, prj=nil, options = {}
       
       Platform.set_env_proxy if Platform.use_proxy? @url
 
@@ -41,7 +41,7 @@ module Jud::Tools
       cmd = "\"#{path}\" clone"
       cmd += " #{@options[:args]}" if @options.has_key? :args
       cmd += " #{@url} #{tempsrc}"
-      Platform.execute cmd, {:wd => src.dirname}.merge(options)
+      status = Platform.execute cmd, {:wd => src.dirname}.merge(options)
       
       cmd = nil
       if options.has_key? :tag then
@@ -52,12 +52,14 @@ module Jud::Tools
         cmd = "\"#{path}\" checkout #{tag_of_version options[:version]}"
       end
       
-      Platform.execute cmd, {:wd => tempsrc}.merge(options) if not cmd.nil?
-	
+      status = Platform.execute cmd, {:wd => tempsrc}.merge(options) if not cmd.nil?
+      
       Platform.unset_env_proxy if Platform.use_proxy? @url
   
       Dir.chdir src.dirname
       File.rename tempsrc.basename.to_s, src.basename.to_s
+      
+      status
       
     end
     

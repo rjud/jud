@@ -40,7 +40,7 @@ module Jud
       end
       iterate_on_hash.call @contents
     end
-        
+    
     def save
       File.open(@filename, 'w') do |out|
         YAML.dump(@contents, out)

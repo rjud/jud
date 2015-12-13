@@ -53,6 +53,9 @@ module Jud::Tools
         puts (Platform.red e)
         puts (Platform.red "Check your connection or your configuration file #{Jud::Config.instance.filename.to_s}")
         abort
+      rescue Exception => e
+        puts (Platform.red e)
+        raise e
       end
       
       agent
@@ -114,6 +117,8 @@ module Jud::Tools
       rescue SocketError => e
         msg = "Can't check the existence of the file #{filename}:\n#{e}"
         puts (Platform.red msg)
+      rescue Exception => e
+        puts (Platform.red e)
       end
       return false
     end

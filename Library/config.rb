@@ -18,11 +18,13 @@ module Jud
       @config = @config_file.contents
       @passwords = @passwords_file.contents
       # Create some entries
-      if not @config.include? 'main' then
-        @config['main']['proxy']['host'] = ''
-        @config['main']['proxy']['port'] = ''
-        @config['main']['proxy']['exceptions'] = []
-      end
+      @config['main']['proxy']['host'] = '' if not @config['main']['proxy'].include? 'host'
+      @config['main']['proxy']['port'] = '' if not @config['main']['proxy'].include? 'port'
+      @config['main']['proxy']['exceptions'] = [] if not @config['main']['proxy'].include? 'exceptions'
+      @config['main']['platform'] = 'default' if not @config['main'].include? 'platform'
+      @config['main']['application'] = 'Tools' if not @config['main'].include? 'application'
+      @config['main']['repositories']['default']['dir'] = Jud::ConfigurationFile.configdir.to_s
+      @config['main']['repositories']['default']['home'] = nil
     end
     
     def get_repo_config repository
@@ -47,4 +49,5 @@ module Jud
     end
     
   end
+    
 end

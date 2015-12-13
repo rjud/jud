@@ -39,7 +39,7 @@ module Jud::Tools
       @url + '/tags/' + version
     end
     
-    def checkout src, prj, options = {}
+    def checkout src, prj=nil, options = {}
       url = resolve_url options
       cmd = "\"#{path}\" checkout"
       cmd += " --trust-server-cert" if (@options.has_key? :trustServerCert and @options[:trustServerCert])
