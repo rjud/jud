@@ -117,13 +117,19 @@ module Application
     end
   end
   
-  def Application.build appname, proj = nil
-    if proj.nil? then
+  def Application.build appname, projname = nil
+    if projname.nil? then
       projects(appname).each do |prj|
         build_one prj
       end
     else
-      prj = Object.const_get proj
+      begin
+        prj = Object.const_get projname
+      rescue
+        dep projname.to_sym
+        $arguments[projname.to_sym][:application] = 'main'
+        prj = Object.const_get projname
+      end
       build_one prj
     end
   end
