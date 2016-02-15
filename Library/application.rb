@@ -133,13 +133,19 @@ module Application
     project(proj.name.to_sym).install_me(force: true)
   end
   
-  def Application.install appname, proj=nil
-    if proj.nil?
+  def Application.install appname, projname=nil
+    if projname.nil?
       projects(appname).each do |prj|
         install_one prj
       end
     else
-      prj = Object.const_get proj
+      begin
+        prj = Object.const_get projname
+      rescue
+        dep projname.to_sym
+        $arguments[projname.to_sym][:application] = 'main'
+        prj = Object.const_get projname
+      end
       install_one prj
     end
   end

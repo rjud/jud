@@ -1,8 +1,8 @@
 class Context
   
   EnvironmentVariable = Struct.new(:var, :value, :append)
-  
-  PATH_SEPARATOR = Platform.is_windows? ? ';' : ':' 
+
+  PATH_SEPARATOR = File::PATH_SEPARATOR
   
   attr_accessor :prj, :name, :debug, :release, :src, :build, :prefix
   attr_accessor :version, :major, :minor, :release, :nbcores
@@ -75,7 +75,9 @@ class Context
       if ENV[variable.var].nil? || (not variable.append)
         ENV[variable.var] = variable.value
       else
-        ENV[variable.var] = variable.value + PATH_SEPARATOR + ENV[variable.var]
+        next if variable.value.eql? '/bin'
+        next if variable.value.eql? '/usr/bin'
+        ENV[variable.var] = variable.value + File::PATH_SEPARATOR + ENV[variable.var]
       end
     end
   end

@@ -24,14 +24,15 @@ module Jud::Tools
     
     def configure src, build, install, build_type, prj, options={}
       configure = File.join(src, 'configure')
-      File.chmod(0744, configure)
-      unless File.exists? configure then
+      if File.exists? configure then
+        File.chmod(0744, configure)
+      else
         Platform.execute "aclocal -I config", wd: src
         Platform.execute "libtoolize --force", wd: src
         Platform.execute "autoheader", wd: src
         Platform.execute "automake --add-missing", wd: src
         Platform.execute "autoconf", wd: src
-      end
+      end      
       configlog = build.join 'config.log'
       FileUtils.rm configlog if File.exists? configlog
       cmd = "#{configure}"

@@ -40,6 +40,12 @@ class BuildTool < Tool
       raise Error, "#{self.class.name}: unknown option '#{id.to_s}'" if not @options.key? id
       ret[id] = ResolvedOption.new(id.to_s, @options[id].type, true, value, @options[id].confcond)
     end
+    # Merge them with the platform configuration
+    platform_options = $platform_config['projects'][context.prj.class.name]['options']
+    platform_options.each do |id, value|
+      raise Error, "#{self.class.name}: unknown option '#{id.to_s}' from platform configuration" if not @options.key? id
+      ret[id] = ResolvedOption.new(id.to_s, @options[id].type, true, value, @options[id].confcond)
+    end
     # Return the resolved options
     ret.each do |key, opt|
       if opt.enabled

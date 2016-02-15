@@ -117,6 +117,7 @@ begin
   rescue LoadError => e
     puts (Platform.red "Can't load application #{$appname}")
     puts (Platform.red e)
+    puts (Platform.red e.backtrace.join("\n\t"))
     exit 1
   end
   
