@@ -13,7 +13,7 @@ class Platform
   
   UNIX  = 1 << 1
   WIN32 = 1 << 2
-    
+  
   def self.colorize text, color_code
     "#{color_code}#{text}\033[0m"
   end
@@ -40,7 +40,6 @@ class Platform
     end
     config = Jud::Config.instance.config['platforms'][name]
     config['repository'] = repository
-    config['home'] = default_home prefix
     config['src'] = default_src prefix
     config['build'] = default_build prefix, name
     config['install'] = default_install prefix, name
@@ -56,14 +55,13 @@ class Platform
     config['arch'] = 'x86'
   end
   
-  def self.default_home prefix; prefix.join('home').to_s; end
   def self.default_src prefix; prefix.join('src').to_s; end
   def self.default_build prefix, name; prefix.join("build-#{name}").to_s; end
   def self.default_install prefix, name; prefix.join("install-#{name}").to_s; end
   def self.default_packages prefix; prefix.join('packages').to_s; end
   def self.default_trash prefix; prefix.join("trash").to_s; end
   
-  attr_reader :name#, :language_to_composite
+  attr_reader :name
   
   def initialize name
     @name = name
@@ -71,9 +69,8 @@ class Platform
     @tool_configs = {}
     @language_to_compiler = {}
     @repo_config = Jud::Config.instance.get_repo_config @config['repository']
-    #@language_to_composite = {}
     prefix = Pathname.new @repo_config['dir']
-    $home = path_from_config 'home', (Platform.default_home prefix)
+    $home = Pathname.new @repo_config['home'] unless @repo_config['home'].nil?
     $src = path_from_config 'src', (Platform.default_src prefix)
     $build = path_from_config 'build', (Platform.default_build prefix, name)
     $install = path_from_config 'install', (Platform.default_install prefix, name)
@@ -101,48 +98,6 @@ class Platform
       Pathname.new default
     end
   end
-  
-  #def setup composite
-  #  begin
-  #    load $juddir.join("Platforms", "#{composite.downcase}.rb")
-  #    klass = Object.const_get(composite)
-  #    klass.create @config
-  #    @config['composites'] << klass.name
-  #  rescue LoadError
-  #    raise Error, "Can't load platform #{composite}"
-  #  end
-  #end
-  
-  #def load_composites
-  #  @config['composites'].each do |composite|
-  #    load_composite composite
-  #  end
-  #end
-  
-  #def load_composite name
-  #  begin
-  #    load $juddir.join("Platforms", "#{name.downcase}.rb")
-  #    #load "Platforms/#{name.downcase}.rb"
-  #    composite = Object.const_get(name).new name
-  #    composite.class.languages.each do |language|
-  #      if language_to_composite.has_key? language then
-  #        raise Error, "There is already a platform for the language #{language.name}"
-  #      else
-  #        language_to_composite[language] = composite
-  #      end
-  #    end
-  #  rescue LoadError => e
-  #    raise Error, "Can't load platform #{name}\n  #{e.backtrace}"
-  #  end
-  #end
-  
-  #def get_composite_for_language language
-  #  if language_to_composite.has_key? language then
-  #    language_to_composite[language]
-  #  else
-  #    raise Error, "Can't find a platform for the language #{language.name}"
-  #  end
-  #end
   
   def cmake_native_build_tool
     toolname = @config['CMake Native Build Tool']
@@ -208,6 +163,15 @@ class Platform
       get_tool_by_classname classname
     else
       raise Error, "Can't find tool with name #{name}" if classname.nil?
+    end
+  end
+
+  def has_tool? classname
+    begin
+      get_tool_config classname
+      true
+    rescue Error => e
+      false
     end
   end
   
@@ -281,7 +245,7 @@ class Platform
       #  while true do
       #    temp = $stdin.gets
       ##    mutex.synchronize do
-       #     userinput = temp
+      #     userinput = temp
       #    end
       #    sleep 0.1
       #  end
@@ -289,20 +253,20 @@ class Platform
       Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
         #$stdin.reopen stdin
         #while true do
-          while line = stdout_err.gets
-            puts line
-            lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
-            #mutex.synchronize do
-            #  unless userinput.nil?
-            #    stdin.puts userinput
-            #    userinput = nil
-            #  end
-            #end
-            #if line =~ /Do you accept the terms of the license?/
-            #  stdin.puts 'y'
-            #end
-            #sleep 0.1
-          end
+        while line = stdout_err.gets
+          puts line
+          lines << line.chomp if options.key? :keep and line.match(/#{options[:keep]}/)
+          #mutex.synchronize do
+          #  unless userinput.nil?
+          #    stdin.puts userinput
+          #    userinput = nil
+          #  end
+          #end
+          #if line =~ /Do you accept the terms of the license?/
+          #  stdin.puts 'y'
+          #end
+          #sleep 0.1
+        end
         #end
         exit_status = wait_thr.value
       end
@@ -311,7 +275,7 @@ class Platform
       abort
     end
     if options[:safe] or exit_status.success? then
-      [exit_status, lines]
+      return [exit_status, lines]
     else
       raise Error, "Command #{cmd} failed"
     end
