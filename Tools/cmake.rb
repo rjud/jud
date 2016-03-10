@@ -112,7 +112,7 @@ module Jud::Tools
       if not $platform_config.include? 'CMake Generator' or not $platform_config['CMake Generator'] =~ /Visual Studio/
         resolved_options['CMAKE_BUILD_TYPE'] = ResolvedOption.new('CMAKE_BUILD_TYPE', :STRING, true, build_type.to_s, nil)
       end
-      resolved_options['CMAKE_CXX_FLAGS'] = ResolvedOption.new('CMAKE_CXX_FLAGS', :STRING, (Platform.is_linux? and arch == 'x86_64'), '-fPIC', nil)
+      resolved_options['CMAKE_CXX_FLAGS'] = ResolvedOption.new('CMAKE_CXX_FLAGS', :STRING, (Platform.is_linux? and (arch == 'x86_64' or arch == 'x64') ), '-fPIC', nil)
       if prj.depends.size > 0 then
         value = '"'
         prj.depends.each do |d|
