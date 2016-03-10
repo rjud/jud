@@ -9,8 +9,6 @@ module Jud::Tools
     def initialize config = {}
       super config
     end
-    
-    
-    
+        
   end
 end
