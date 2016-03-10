@@ -99,8 +99,6 @@ module Application
     end
   end
   
-  module_function :project
-  
   def options sym
     $arguments[sym]
   end
@@ -116,7 +114,7 @@ module Application
       p.update
     end
   end
-  
+
   def Application.build appname, projname = nil
     if projname.nil? then
       projects(appname).each do |prj|
@@ -229,5 +227,7 @@ module Application
     prj = project(projname.to_sym)
     prj.upload_this
   end
+
+  module_function :project, :dep, :prj, :build_one
     
 end
