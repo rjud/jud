@@ -2,6 +2,7 @@ class CMake < Project
   
   cxx
   wget 'http://www.cmake.org/files/v%{major}.%{minor}/cmake-%{version}.tar.gz', { :srcrename => 'cmake-3.2.2' }
+  #wget 'http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz', { :srcrename => 'cmake-3.2.2' }
   
   unless Platform.is_windows?
     autotools
