@@ -103,16 +103,17 @@ module Application
     $arguments[sym]
   end
   
-  def Application.update    
+  def Application.update appname
     all = []
-    projects.each do |p|
-      all << project(p.name.to_sym)
-      all.concat project(p.name.to_sym).all_dependencies
+    projects(appname).each do |p|
+	  project(p.name.to_sym).update
+      #all << project(p.name.to_sym)
+      #all.concat project(p.name.to_sym).all_dependencies
     end
-    all.uniq!
-    all.each do |p|
-      p.update
-    end
+    #all.uniq!
+    #all.each do |p|
+    #  p.update
+    #end
   end
 
   def Application.build appname, projname = nil
