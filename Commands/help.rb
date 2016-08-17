@@ -9,6 +9,7 @@ module Jud
     puts ' [install [<app>] [+<opt>]*[-<opt>]*]'
     puts ' [option <path1> <pathn>* <value>'
     puts ' [options <project>]'
+    puts ' [switch <app>|main|<platform>]'    
     puts ' [tag <tag>]'
     puts ' [tags]'
   end
