@@ -22,6 +22,6 @@ module Jud
         prjname = ARGV.shift
       end
     end
-    Application.submit appname, prjname, { :mode => mode }
+    Application.submit $appname, $prjname, { :mode => mode }
   end
 end
