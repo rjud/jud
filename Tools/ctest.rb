@@ -51,14 +51,15 @@ module Jud::Tools
       url = ''
       File.open (srcdir + 'CTestConfig.cmake').to_s, 'r' do |file|
         while line = file.gets
-          if /^[s|S][e|E][t|T]\(CTEST_DROP_METHOD "(?<protocol>.*)"\)/ =~ line
+          if /^[s|S][e|E][t|T](?: )?\(CTEST_DROP_METHOD "(?<protocol>.*)"\)/ =~ line
             url += protocol + '://'
           end
-          if /^[s|S][e|E][t|T]\(CTEST_DROP_SITE "(?<site>.*)"\)/ =~ line
+          if /^[s|S][e|E][t|T](?: )?\(CTEST_DROP_SITE "(?<site>.*)"\)/ =~ line
             url += site if defined? site
           end
         end
       end
+      puts("url: #{url}")
       # Call CTest
       old_lang = ENV['LANG']
       ENV['LANG'] = 'en'
