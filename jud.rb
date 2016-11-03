@@ -91,7 +91,7 @@ begin
 
   if scm.size > 0
     load "Tools/#{scm.downcase}.rb"
-    scm = Object.const_get("Jud::Tools::#{scm}").new url
+    $scm = Object.const_get("Jud::Tools::#{scm}").new url
   end
 
   if $home

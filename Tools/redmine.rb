@@ -150,6 +150,7 @@ module Jud::Tools
           versionid = version_id version
           version! version if versionid.nil?
           versionid = version_id version
+          return if versionid.nil?
         end
       rescue Mechanize::ResponseCodeError => e
       rescue SocketError => e
