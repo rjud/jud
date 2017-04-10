@@ -25,6 +25,7 @@ module Jud::Tools
         resolved_options << BuildTool::ResolvedOption.new('CMAKE_CXX_FLAGS', :STRING, true, '-O0 -fPIC -fprofile-arcs -ftest-coverage ', nil)
         resolved_options << BuildTool::ResolvedOption.new('CMAKE_C_FLAGS', :STRING, true, '-O0 -fPIC -fprofile-arcs -ftest-coverage ', nil)
         resolved_options << BuildTool::ResolvedOption.new('CMAKE_EXE_LINKER_FLAGS', :STRING, true, '-fprofile-arcs -ftest-coverage', nil)
+        resolved_options << BuildTool::ResolvedOption.new('CMAKE_MODULE_LINKER_FLAGS', :STRING, true, '-fprofile-arcs -ftest-coverage', nil)        
       end
       resolved_options
     end
